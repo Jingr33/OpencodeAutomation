@@ -1,0 +1,7 @@
+{
+  "example": {
+    "path": "../repositories/example",
+    "remote": "https://github.com/owner/example.git",
+    "branch": "main"
+  }
+}
