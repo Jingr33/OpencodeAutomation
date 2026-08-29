@@ -795,4 +795,3 @@ The plan is complete when:
 - Agents have least-privilege permissions and clear output contracts.
 - Templates are validated.
 - The repository has automated tests and documented supported environments.
-
