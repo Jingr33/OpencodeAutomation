@@ -1,0 +1,9 @@
+
+# Repositories and worktrees managed by the OpenCode framework.
+repositories/
+.worktrees/
+.opencode/state/
+.opencode/scripts/__pycache__/
+
+# Local project-management output.
+dev_support/
