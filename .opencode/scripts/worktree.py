@@ -19,6 +19,23 @@ def repo_path(args: argparse.Namespace) -> Path:
     return Path(args.repo or os.getcwd()).expanduser().resolve()
 
 
+def git_common_dir(repo: Path) -> Path | None:
+    common = run(["git", "rev-parse", "--git-common-dir"], repo, check=False)
+    if not common:
+        return None
+    common_path = Path(common)
+    if not common_path.is_absolute():
+        common_path = repo / common_path
+    return common_path.resolve()
+
+
+def is_agentic_repository(repo: Path) -> bool:
+    agentic_root = Path(__file__).resolve().parents[2]
+    agentic_common_dir = git_common_dir(agentic_root)
+    target_common_dir = git_common_dir(repo)
+    return agentic_common_dir is not None and agentic_common_dir == target_common_dir
+
+
 def worktree_root(repo: Path, args: argparse.Namespace) -> Path:
     configured = args.root or os.environ.get("OPENCODE_WORKTREE_ROOT")
     return Path(configured).expanduser().resolve() if configured else repo / ".worktrees"
@@ -75,6 +92,11 @@ def worktrees(repo: Path) -> list[dict[str, str | bool]]:
 
 def create(args: argparse.Namespace) -> None:
     repo = repo_path(args)
+    if is_agentic_repository(repo):
+        raise SystemExit(
+            "refusing to create a worktree for the agentic repository; "
+            "implement it in the current checkout"
+        )
     branch = args.branch
     existing = next((item for item in worktrees(repo) if item.get("branch") == branch), None)
     if existing:

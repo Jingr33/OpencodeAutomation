@@ -31,8 +31,9 @@ is the fallback when no Issue number is supplied.
 ## Create An Issue
 
 Use `.opencode/templates/issue-task.md`, derive a kebab-case slug, create the
-Issue, optionally add it to the configured project, and create the task branch
-with `/worktree.create` or `scripts/worktree.py`.
+Issue, and optionally add it to the configured project. Do not create a branch
+or worktree here; branch and worktree creation is the responsibility of the
+dev and CR commands that operate on the Issue.
 
 ## Optional Project
 
@@ -81,6 +82,8 @@ reported.
 1. Always read the complete Issue body before implementing it.
 2. Respect `Blocked`, `In progress`, and `Done` unless the user explicitly asks
    to take over or reopen work.
-3. Create one branch and one worktree per concurrent task.
+3. Create one branch and one worktree per concurrent task. The dev and CR
+   commands own this; Issue creation must not create branches or worktrees.
+   Prefer reusing an existing clean worktree for the same branch.
 4. Record implementation summaries in the configured local support directory and
    post the summary to the Issue when GitHub access is available.
