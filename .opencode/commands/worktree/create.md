@@ -3,7 +3,9 @@ description: Create an isolated worktree and branch for a task
 subtask: true
 ---
 
-Load the `worktree` skill. Parse `$ARGUMENTS` as `<branch> [base]`, with optional
+Load the `worktree` skill. This command is for external or managed target
+repositories only. It MUST NOT be used for the agentic repository; the helper
+will reject that target. Parse `$ARGUMENTS` as `<branch> [base]`, with optional
 `--repo <path>` and `--path <path>`. Run:
 
 ```bash
