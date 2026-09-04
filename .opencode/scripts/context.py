@@ -15,9 +15,9 @@ def run(command: list[str], cwd: Path, check: bool = True) -> str:
 def resolve_target(args: argparse.Namespace) -> dict:
     """Resolve target repository context."""
     agentic_root = Path(__file__).parent.parent.parent.resolve()
-    source_root = Path(args.source_root or os.environ.get("OPENCODE_SOURCE_ROOT", "./source")).resolve()
-    state_root = Path(args.state_root or os.environ.get("OPENCODE_STATE_ROOT", ".opencode/state")).resolve()
-    support_root = Path(args.support_root or os.environ.get("OPENCODE_SUPPORT_ROOT", "dev_support")).resolve()
+    source_root = Path(args.source_root or os.environ.get("OPENCODE_SOURCE_ROOT", str(agentic_root / "source"))).resolve()
+    state_root = Path(args.state_root or os.environ.get("OPENCODE_STATE_ROOT", str(agentic_root / ".opencode" / "state"))).resolve()
+    support_root = Path(args.support_root or os.environ.get("OPENCODE_SUPPORT_ROOT", str(agentic_root / "dev_support"))).resolve()
     
     # Resolution order
     target = None
@@ -64,6 +64,16 @@ def resolve_target(args: argparse.Namespace) -> dict:
             "phase": "resolve",
             "retryable": False,
             "action": "Verify the target path exists and is accessible."
+        }
+    
+    # Validate target is a directory
+    if not target.is_dir():
+        return {
+            "error": "target_not_a_directory",
+            "message": f"Target path is not a directory: {target}",
+            "phase": "resolve",
+            "retryable": False,
+            "action": "Provide a directory path, not a file path."
         }
     
     # Get Git top-level directory
