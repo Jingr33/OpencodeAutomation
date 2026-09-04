@@ -13,14 +13,20 @@ Commands are discovered from `.opencode/commands/` directory. Each command is a 
 **Directory Structure:**
 ```
 .opencode/commands/
+├── cluster/
+│   └── scp.md
 ├── dev/
 │   ├── implement.md
-│   └── review.md
+│   ├── review.md
+│   └── startup/
+│       └── ...
 ├── issue/
 │   ├── analyze.md
 │   ├── create.md
 │   ├── fix.md
 │   └── migrate.md
+├── repo/
+│   └── ...
 ├── review/
 │   ├── cr.md
 │   └── fix-cr.md
@@ -28,13 +34,9 @@ Commands are discovered from `.opencode/commands/` directory. Each command is a 
 │   ├── pull.md
 │   ├── push.md
 │   └── ship.md
-├── worktree/
-│   ├── cleanup.md
-│   ├── create.md
-│   ├── list.md
-│   └── remove.md
-└── workspace/
-    ├── add.md
+└── worktree/
+    ├── cleanup.md
+    ├── create.md
     ├── list.md
     └── remove.md
 ```
@@ -109,12 +111,15 @@ Every command MUST have an explicit agent assigned. The agent is specified in th
 
 | Command | Agent | Description |
 |---------|-------|-------------|
+| `cluster/scp` | cluster-manager | Transfer files via SCP |
 | `dev/implement` | implementer | Implement features |
 | `dev/review` | reviewer | Review code changes |
+| `dev/startup/*` | startup-manager | Toolkit startup commands |
 | `issue/analyze` | issue-manager | Analyze issues |
 | `issue/create` | issue-manager | Create issues |
 | `issue/fix` | implementer | Fix issues |
 | `issue/migrate` | issue-manager | Migrate issues |
+| `repo/*` | repository-manager | Repository management |
 | `review/cr` | reviewer | Code review |
 | `review/fix-cr` | implementer | Fix code review comments |
 | `sync/pull` | sync | Pull changes |
@@ -124,9 +129,6 @@ Every command MUST have an explicit agent assigned. The agent is specified in th
 | `worktree/create` | worktree-manager | Create worktrees |
 | `worktree/list` | worktree-manager | List worktrees |
 | `worktree/remove` | worktree-manager | Remove worktrees |
-| `workspace/add` | repository-manager | Add to workspace |
-| `workspace/list` | repository-manager | List workspace |
-| `workspace/remove` | repository-manager | Remove from workspace |
 
 ## Verification Commands
 
