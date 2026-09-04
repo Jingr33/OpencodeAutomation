@@ -80,7 +80,7 @@ reported.
 
 1. **NEVER implement the task.** This skill is exclusively for Issue creation
    and project management. Stop after creating the Issue, optionally adding it
-   to the GitHub Project, and reporting the Issue URL and worktree path.
+   to the GitHub Project, and reporting the Issue URL.
 2. Always read the complete Issue body before creating it.
 3. Respect `Blocked`, `In progress`, and `Done` unless the user explicitly asks
    to take over or reopen work.

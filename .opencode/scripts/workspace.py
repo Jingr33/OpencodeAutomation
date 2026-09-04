@@ -39,7 +39,7 @@ def ensure_agentic(args: argparse.Namespace) -> None:
     root = Path(args.repo or os.getcwd()).expanduser().resolve()
     data = load(root)
     agentic_entry = {"path": ".", "name": AGENTIC_NAME}
-    existing = [f for f in data["folders"] if f.get("name") == AGENTIC_NAME or f.get("path") == "."]
+    existing = [f for f in data["folders"] if f.get("name") == AGENTIC_NAME or canonical(f.get("path", ""), root) == "."]
     if not existing:
         data["folders"].insert(0, agentic_entry)
         save(root, data)
@@ -68,7 +68,8 @@ def remove(args: argparse.Namespace) -> None:
     before = len(data["folders"])
     data["folders"] = [
         f for f in data["folders"]
-        if f.get("path") != target and f.get("name") != target
+        if canonical(f.get("path", ""), root) != canonical(target, root)
+        and f.get("name") != target
     ]
     removed = before != len(data["folders"])
     save(root, data)
