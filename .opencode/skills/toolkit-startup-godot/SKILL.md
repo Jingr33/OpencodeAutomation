@@ -1,10 +1,17 @@
+---
+name: toolkit-startup-godot
+description: Deterministic startup and lifecycle management for GODOT game development projects
+license: MIT
+compatibility: opencode
+---
+
 # GODOT Toolkit Startup Skill
 
 ## Overview
 
 This skill provides deterministic startup and lifecycle management for GODOT game development projects. It supports two integration modes:
 
-1. **GODOT MCP Mode**: Full control over the game through GODOT's Multiplayer Control Protocol
+1. **GODOT MCP Mode**: Full control over the game through GODOT's Model Context Protocol
 2. **Editor Mode**: OpenCode as a text file editor only (safer but more limited)
 
 ## Prerequisites
@@ -50,7 +57,7 @@ Create `opencode.project.json` in the project root:
     }
   ],
   "checks": {
-    "build": ["godot", "--headless", "--export-release", "Linux/X11"],
+    "build": ["godot", "--headless", "--export-release", "Linux/X11", "build/linux.x86_64"],
     "test": ["godot", "--headless", "--script", "res://test_runner.gd"]
   }
 }
@@ -97,14 +104,14 @@ Create `opencode.project.json` in the project root:
 ## Commands
 
 ### Plan
-Preview what will be done without executing:
+Preview what will be done (note: headless mode still executes the engine):
 
 ```bash
 # Preview startup plan
 godot --path . --headless --quit
 
 # Preview export plan
-godot --path . --headless --export-release Linux/X11
+godot --path . --headless --export-release Linux/X11 build/linux.x86_64
 ```
 
 ### Run
@@ -122,7 +129,12 @@ godot --path .
 Check if GODOT is running:
 
 ```bash
-# Check if GODOT process is running
+# Check if GODOT process is running (cross-platform)
+pgrep -f godot > /dev/null && echo "GODOT is running" || echo "GODOT is not running"
+```
+
+```cmd
+:: Windows alternative
 tasklist /FI "IMAGENAME eq godot.exe" 2>NUL | find /I "godot.exe" > NUL
 if %ERRORLEVEL% == 0 (
     echo GODOT is running
@@ -135,7 +147,12 @@ if %ERRORLEVEL% == 0 (
 Stop the GODOT project:
 
 ```bash
-# Stop GODOT process
+# Stop GODOT process (cross-platform)
+pkill -f godot
+```
+
+```cmd
+:: Windows alternative
 taskkill /IM godot.exe /F
 ```
 
@@ -162,9 +179,9 @@ godot --headless --script res://scripts/player.gd
 ### 4. Export
 ```bash
 # Export for different platforms
-godot --headless --export-release "Windows Desktop"
-godot --headless --export-release "Linux/X11"
-godot --headless --export-release "macOS"
+godot --headless --export-release "Windows Desktop" "build/windows.exe"
+godot --headless --export-release "Linux/X11" "build/linux.x86_64"
+godot --headless --export-release "macOS" "build/macos.app"
 ```
 
 ## Best Practices
