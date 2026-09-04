@@ -19,14 +19,16 @@
 - **Events**: `OrderPlaced`, `UserLoggedIn`
 
 ### camelCase
-- **Private Fields**: `_userService`, `_orderProcessor`
 - **Local Variables**: `userId`, `orderTotal`
 - **Parameters**: `userId`, `orderTotal`
 - **Method Parameters**: `string userId`, `int orderTotal`
 
-### snake_case (for specific cases)
-- **Private Constants**: `_max_retry_count`
-- **Private Static Readonly**: `_default_timeout`
+### Private Fields (underscore-prefixed camelCase)
+- **Private Fields**: `_userService`, `_orderProcessor`
+
+### PascalCase (for specific cases)
+- **Private Constants**: `MaxRetryCount`, `DefaultTimeout`
+- **Private Static Readonly**: `DefaultTimeout`
 
 ## File Organization
 
@@ -50,7 +52,7 @@
 ```csharp
 // 1. Using directives
 using System;
-using System.Collections.Generic;
+using System.Threading.Tasks;
 
 // 2. Namespace
 namespace MyApp.Features.Users
@@ -251,11 +253,14 @@ public async Task GetUserById_WhenUserDoesNotExist_ThrowsUserNotFoundException()
 /// <param name="userId">The unique identifier of the user.</param>
 /// <param name="cancellationToken">Cancellation token.</param>
 /// <returns>The user if found; otherwise, null.</returns>
-/// <exception cref="ArgumentNullException">Thrown when userId is null.</exception>
+/// <exception cref="ArgumentOutOfRangeException">Thrown when userId is less than or equal to zero.</exception>
 public async Task<User?> GetUserByIdAsync(
     int userId,
     CancellationToken cancellationToken = default)
 {
+    if (userId <= 0)
+        throw new ArgumentOutOfRangeException(nameof(userId), userId, "User ID must be positive.");
+    
     return await _userRepository.GetByIdAsync(userId, cancellationToken);
 }
 ```
