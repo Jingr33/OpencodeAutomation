@@ -1,6 +1,6 @@
 ﻿---
 name: github-issues
-description: GitHub Issue lifecycle, project sync, and Issue conventions
+description: GitHub Issue creation, project sync, and Issue conventions (never implements)
 license: MIT
 compatibility: opencode
 ---
@@ -31,8 +31,8 @@ is the fallback when no Issue number is supplied.
 ## Create An Issue
 
 Use `.opencode/templates/issue-task.md`, derive a kebab-case slug, create the
-Issue, optionally add it to the configured project, and create the task branch
-with `/worktree.create` or `scripts/worktree.py`.
+Issue, and optionally add it to the configured project with status `Backlog`.
+**Stop after reporting the Issue URL. Do not implement the task.**
 
 ## Optional Project
 
@@ -78,9 +78,10 @@ reported.
 
 ## Rules
 
-1. Always read the complete Issue body before implementing it.
-2. Respect `Blocked`, `In progress`, and `Done` unless the user explicitly asks
+1. **NEVER implement the task.** This skill is exclusively for Issue creation
+   and project management. Stop after creating the Issue, optionally adding it
+   to the GitHub Project, and reporting the Issue URL.
+2. Always read the complete Issue body before creating it.
+3. Respect `Blocked`, `In progress`, and `Done` unless the user explicitly asks
    to take over or reopen work.
-3. Create one branch and one worktree per concurrent task.
-4. Record implementation summaries in the configured local support directory and
-   post the summary to the Issue when GitHub access is available.
+4. Do not write code, run tests, or perform any implementation work.
