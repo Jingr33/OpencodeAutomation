@@ -5,7 +5,7 @@ subtask: true
 
 Load the `worktree` skill. Identify the exact path or branch and show its status.
 After explicit user confirmation, first remove the worktree from the VS Code
-workspace with `python .opencode/scripts/workspace.py remove <path-or-branch>`,
+workspace with `python .opencode/scripts/workspace.py remove <worktree-path>`,
 then run:
 
 ```bash
