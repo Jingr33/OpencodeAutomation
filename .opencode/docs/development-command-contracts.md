@@ -8,142 +8,104 @@ This document defines the contracts for development, implementation, documentati
 
 **Syntax:**
 ```
-implement <description> [--repo <path>] [--dry-run] [--apply]
+implement <issue-number>
 ```
 
 **Arguments:**
-- `description`: Feature or task description
-- `--repo`: Target repository path (required for toolkit commands)
-- `--dry-run`: Preview changes without applying
-- `--apply`: Authorize and apply changes
+- `issue-number`: GitHub Issue number to implement
 
 **Preconditions:**
-- Target repository must be specified and accessible
-- Working directory must be clean
+- Issue must exist and be in `Ready` or `Backlog` status
+- Target repository must be accessible
+- Working directory must be clean (no uncommitted changes)
 - Required dependencies must be installed
 
 **Side Effects:**
 - Creates or modifies files in target repository
-- May create new branches
+- Creates a dedicated branch and worktree
+- Updates GitHub Project status to `In progress`
 
 **Outputs:**
 - Changed files list
 - Verification results
-- Summary of changes
+- Summary posted as Issue comment
 
 **Confirmation:**
 - Required for file modifications
 - Preview must be shown before applying
 
-### Review Command
+### Build Command
 
 **Syntax:**
 ```
-review [--repo <path>] [--format <text|json>]
+build
 ```
 
 **Arguments:**
-- `--repo`: Target repository path
-- `--format`: Output format (default: text)
+- None (operates on active repository)
 
 **Preconditions:**
-- Target repository must be specified
-- Code changes must exist
+- Target repository must be accessible
+- Repository must have buildable content
+
+**Side Effects:**
+- Runs dependency, compile, test, and lint checks
+- May create build artifacts
+
+**Outputs:**
+- Check results (pass/fail)
+- Error messages
+- Command output
+
+**Confirmation:**
+- Not required (standard build)
+
+### CR (Code Review) Command
+
+**Syntax:**
+```
+cr
+```
+
+**Arguments:**
+- None (operates on staged and unstaged changes)
+
+**Preconditions:**
+- Code changes must exist (staged or unstaged)
 
 **Side Effects:**
 - None (read-only operation)
 
 **Outputs:**
-- Review findings
-- Suggestions
-- Approval status
+- Socratic review questions
+- Hints escalating to direct questions
 
 **Confirmation:**
 - Not required (read-only)
 
-### Build Command
+### Document Command
 
 **Syntax:**
 ```
-build [--repo <path>] [--project <name>] [--configuration <Debug|Release>]
+document <target>
 ```
 
 **Arguments:**
-- `--repo`: Target repository path
-- `--project`: Project name (required for .NET)
-- `--configuration`: Build configuration (default: Debug)
+- `target`: What to document (`opencode` for shared setup, `all` for stale pages, or specific topic)
 
 **Preconditions:**
-- Target repository must be specified
-- Project must be buildable
-- Required SDK/tools must be installed
+- Target repository must be accessible
+- Existing documentation structure must be inspected first
 
 **Side Effects:**
-- Creates build artifacts
-- May modify build directories
+- May create or update documentation files
 
 **Outputs:**
-- Build result
-- Error messages
-- Build duration
+- Documentation changes
+- Summary of updates
 
 **Confirmation:**
-- Not required (standard build)
-
-### Test Command
-
-**Syntax:**
-```
-test [--repo <path>] [--filter <expression>] [--logger <logger>]
-```
-
-**Arguments:**
-- `--repo`: Target repository path
-- `--filter`: Test filter expression
-- `--logger`: Test logger
-
-**Preconditions:**
-- Target repository must be specified
-- Tests must exist
-- Test framework must be installed
-
-**Side Effects:**
-- May create test results
-- May modify test output directories
-
-**Outputs:**
-- Test results
-- Pass/fail counts
-- Test duration
-
-**Confirmation:**
-- Not required (standard test)
-
-### Lint Command
-
-**Syntax:**
-```
-lint [--repo <path>] [--fix] [--format <format>]
-```
-
-**Arguments:**
-- `--repo`: Target repository path
-- `--fix`: Auto-fix issues
-- `--format`: Output format
-
-**Preconditions:**
-- Target repository must be specified
-- Linter must be installed
-
-**Side Effects:**
-- May modify files when `--fix` is used
-
-**Outputs:**
-- Lint findings
-- Fixed files (when `--fix` is used)
-
-**Confirmation:**
-- Required when `--fix` is used
+- Required for file modifications
 
 ## Startup Commands
 
@@ -155,21 +117,19 @@ Startup commands in the agentic repository must only route to named technology-s
 - Process launching
 - Readiness checking
 
-### Startup Link Commands
+### Available Startup Commands
 
 ```
-agentic_repo.startup.react  -> toolkit-startup-react
-agentic_repo.startup.python -> toolkit-startup-python
-agentic_repo.startup.dotnet -> toolkit-startup-dotnet
-agentic_repo.startup.node   -> toolkit-startup-node
-agentic_repo.startup.godot  -> toolkit-startup-godot
+startup/all      -> Start all documented development processes
+startup/backend  -> Start backend or service process
+startup/frontend -> Start frontend development process
 ```
 
-Each link must:
-1. Identify the target repository
-2. Load the named toolkit startup skill
-3. Pass through arguments and configuration
-4. Return structured results
+Each startup command must:
+1. Inspect the repository's README, package manifests, and development scripts
+2. Detect the appropriate entrypoint and documented command
+3. Report the command before running it if multiple candidates exist
+4. Never invent framework-specific flags or ports
 
 ### Technology Skill Contract
 
@@ -199,12 +159,12 @@ Each technology startup skill must provide:
 
 ### Deterministic Check Selection
 
-Checks must be selected deterministically:
+Checks must be selected deterministically based on the repository's actual configuration:
 
 1. Explicit profile configuration
 2. Package.json scripts (for Node.js/React)
 3. pyproject.toml scripts (for Python)
-4. .csproj build targets (for .NET)
+4. Makefile targets
 5. Refuse if no checks available
 
 ### Skipped Checks
@@ -219,7 +179,7 @@ When a check is skipped, report:
 ### Explicit Target Selection
 
 Commands must use explicit target selection:
-- `--repo` argument
+- `--repo` argument (where supported)
 - `OPENCODE_TARGET_REPO` environment variable
 - Current checkout (only if not agentic repository)
 
