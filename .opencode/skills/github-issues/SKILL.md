@@ -31,7 +31,7 @@ is the fallback when no Issue number is supplied.
 ## Create An Issue
 
 Use `.opencode/templates/issue-task.md`, derive a kebab-case slug, create the
-Issue, and optionally add it to the configured project with status `Ready`.
+Issue, and optionally add it to the configured project with status `Backlog`.
 **Stop after reporting the Issue URL. Do not implement the task.**
 
 ## Optional Project
@@ -84,5 +84,4 @@ reported.
 2. Always read the complete Issue body before creating it.
 3. Respect `Blocked`, `In progress`, and `Done` unless the user explicitly asks
    to take over or reopen work.
-4. Create one branch and one worktree per concurrent task.
-5. Do not write code, run tests, or perform any implementation work.
+4. Do not write code, run tests, or perform any implementation work.
