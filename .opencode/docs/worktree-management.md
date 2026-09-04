@@ -10,13 +10,13 @@ The worktree system allows concurrent work on multiple tasks by creating isolate
 
 ```
 .worktrees/
-├── feature/1-github-issue-templates/
-├── feature/2-initialize-opencode-repo/
-├── feature/3-coding-standards/
+├── feature-1-github-issue-templates/
+├── feature-2-initialize-opencode-repo/
+├── feature-3-coding-standards/
 └── ...
 ```
 
-Worktrees are stored in `.worktrees/` by default, or in a custom location specified by `OPENCODE_WORKTREE_ROOT`.
+Worktrees are stored in `.worktrees/` by default, or in a custom location specified by `OPENCODE_WORKTREE_ROOT`. Branch names are sanitized to flat directory names (e.g., `feature/1-github-issue-templates` becomes `feature-1-github-issue-templates`).
 
 ## Commands
 
@@ -62,7 +62,7 @@ python .opencode/scripts/worktree.py remove <path-or-branch> --repo <path> [--fo
 
 **Safety Rules:**
 - Never removes the main worktree
-- Requires explicit confirmation for dirty worktrees
+- Exits immediately for dirty worktrees unless `--force` is provided
 - `--force` only for explicitly approved dirty worktrees
 - Prunes stale Git worktree metadata after removal
 
@@ -75,16 +75,18 @@ python .opencode/scripts/worktree.py cleanup --closed-prs [--repo <path>] [--app
 **Behavior:**
 1. Preview candidates first (without `--apply`)
 2. Check dirty state and closed PR status
-3. Only remove after user confirmation
+3. Exits immediately for dirty worktrees unless `--force` is provided
 4. Use `--force` only for explicitly approved dirty worktrees
 
 ## Integration with VS Code
 
-Add worktrees to VS Code workspace:
+Add worktrees to VS Code workspace (requires `workspace.py` script):
 
 ```bash
 python .opencode/scripts/workspace.py add <worktree-path> --name <slug>
 ```
+
+Note: The `workspace.py` script is part of the workspace integration feature and may not be available in all branches.
 
 ## Best Practices
 
