@@ -22,6 +22,12 @@ from one workspace.
 4. Use `/dev.implement <issue-number>` for implementation and `/issue.*` for
    GitHub Issue management.
 
+The agentic repository is always changed in its current checkout and never in
+a worktree. When a task worktree is created for an external target repository,
+it is added to the VS Code multi-root workspace automatically. Open
+`opencode-automation.code-workspace` in VS Code to see the agentic repository
+and all active task worktrees together.
+
 The repository and worktree locations can be changed with `OPENCODE_REPO_ROOT`
 and `OPENCODE_WORKTREE_ROOT`. Cluster commands are configured only through
 `OPENCODE_CLUSTER_*` environment variables; no credentials are stored here.
