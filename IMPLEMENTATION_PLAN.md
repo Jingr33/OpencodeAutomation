@@ -428,7 +428,6 @@ rules:
 .opencode/skills/toolkit-startup-react/
 .opencode/skills/toolkit-startup-python/
 .opencode/skills/toolkit-startup-dotnet/
-.opencode/skills/toolkit-startup-node/
 ```
 
 The skill names and descriptions must use the `toolkit.` namespace concept. They
@@ -474,7 +473,6 @@ Create only thin agentic-repository command links:
 agentic_repo.startup.react  -> toolkit-startup-react
 agentic_repo.startup.python -> toolkit-startup-python
 agentic_repo.startup.dotnet -> toolkit-startup-dotnet
-agentic_repo.startup.node   -> toolkit-startup-node
 ```
 
 Each command body must only identify and load the named toolkit startup skill and
@@ -584,7 +582,6 @@ The agentic repository must contain only explicit technology links:
 agentic_repo.startup.react
 agentic_repo.startup.python
 agentic_repo.startup.dotnet
-agentic_repo.startup.node
 ```
 
 Each link loads exactly one matching `toolkit-startup-*` skill. There must be no
