@@ -111,9 +111,7 @@ The `toolkit` namespace is reserved for commands executed against target reposit
 │   │   └── SKILL.md
 │   ├── toolkit-startup-python/
 │   │   └── SKILL.md
-│   ├── toolkit-startup-dotnet/
-│   │   └── SKILL.md
-│   └── toolkit-startup-node/
+│   └── toolkit-startup-dotnet/
 │       └── SKILL.md
 └── instructions/
     ├── agentic_repo/           # agentic_repo instructions
