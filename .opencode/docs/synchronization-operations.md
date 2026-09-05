@@ -1,213 +1,142 @@
 # Synchronization and Cluster Operations
 
-This document defines the split synchronization commands and cluster operation behavior.
+This document defines the synchronization commands and cluster operation behavior
+based on the actual command files in `.opencode/commands/sync/` and
+`.opencode/commands/cluster/`.
 
 ## Synchronization Commands
 
-### sync/commit
+### sync/pull
 
-**Syntax:**
-```
-sync/commit [--message <message>] [--all] [--repo <path>]
-```
+**Description:** Pull changes from the active repository remote.
 
-**Arguments:**
-- `--message`: Commit message (required)
-- `--all`: Stage all changes
-- `--repo`: Target repository path
+**Behavior:**
+- Inspects the current branch and working tree
+- If clean, runs `git pull` for the active repository
+- Does not discard local changes
+- Reports the result
 
-**Preconditions:**
-- Changes exist to commit
-- Working directory is not clean
-- Commit message is provided
+**Example:** `sync/pull`
 
-**Preview:**
-- Show files to be committed
-- Show commit message
-- Show branch and repository
-
-**Confirmation:**
-- Required before commit
-
-**Output:**
-```json
-{
-  "command": "sync/commit",
-  "status": "succeeded",
-  "commit": "abc123",
-  "files": ["file1.cs", "file2.cs"],
-  "message": "Add feature X"
-}
-```
+---
 
 ### sync/push
 
-**Syntax:**
-```
-sync/push [--repo <path>] [--force]
-```
+**Description:** Commit, push, and optionally create a pull request for the active branch.
 
-**Arguments:**
-- `--repo`: Target repository path
-- `--force`: Force push (requires confirmation)
+**Behavior:**
+- Loads `github-issues` skill for Issue awareness
+- Inspects status, current branch, remote, and related Issue before acting
+- Stages only intended changes
+- Uses an Issue-aware commit message when possible
+- Pushes the current branch
+- Creates a PR only when one does not already exist
+- Never places credentials in a remote URL
+- Asks before force-pushing or committing unrelated changes
 
-**Preconditions:**
-- Commits exist to push
-- Remote is configured
-- Authentication is available
+**Example:** `sync/push`
 
-**Preview:**
-- Show commits to push
-- Show remote and branch
-- Show force push warning (if applicable)
-
-**Confirmation:**
-- Required before push
-- Extra confirmation for force push
-
-**Output:**
-```json
-{
-  "command": "sync/push",
-  "status": "succeeded",
-  "remote": "origin",
-  "branch": "feature/my-feature",
-  "commits": 3
-}
-```
-
-### sync/pr
-
-**Syntax:**
-```
-sync/pr [--title <title>] [--body <body>] [--base <branch>] [--repo <path>]
-```
-
-**Arguments:**
-- `--title`: PR title (required)
-- `--body`: PR body
-- `--base`: Base branch (default: main)
-- `--repo`: Target repository path
-
-**Preconditions:**
-- Branch has commits
-- No existing PR for branch
-- Remote is configured
-
-**Preview:**
-- Show PR title and body
-- Show base and head branches
-- Show files changed
-
-**Confirmation:**
-- Required before PR creation
-
-**Output:**
-```json
-{
-  "command": "sync/pr",
-  "status": "succeeded",
-  "pr": 123,
-  "url": "https://github.com/org/repo/pull/123",
-  "title": "Add feature X"
-}
-```
+---
 
 ### sync/ship
 
-**Syntax:**
-```
-sync/ship [--message <message>] [--repo <path>]
-```
+**Description:** Stage, commit, push, and create a pull request for reviewed changes.
 
-**Arguments:**
-- `--message`: Commit message (required)
-- `--repo`: Target repository path
+**Behavior:**
+- Runs the full synchronization workflow for the active branch
+- Loads `github-management` when review metadata is involved
+- Uses a summary from the configured local support directory when available
+- Writes a concise PR body from the diff when no summary exists
+- Confirms the final branch and PR URL
 
-**Preconditions:**
-- Changes exist
-- Remote is configured
-- Authentication is available
+**Example:** `sync/ship`
 
-**Preview:**
-- Show commit message
-- Show files to be committed
-- Show push details
-- Show PR creation details
-
-**Confirmation:**
-- Required before ship
-
-**Orchestration:**
-1. Commit changes
-2. Push to remote
-3. Create or update PR
-4. Report results
-
-**Output:**
-```json
-{
-  "command": "sync/ship",
-  "status": "succeeded",
-  "commit": "abc123",
-  "pr": 123,
-  "url": "https://github.com/org/repo/pull/123"
-}
-```
+---
 
 ## Cluster Operations
 
-### Command Execution
+### cluster/job
 
-#### Argument-Array Mode
+**Description:** Execute a user-described multi-step remote job safely.
 
-```bash
-# Preferred: argument array
-["ls", "-la", "/path/to/directory"]
-```
+**Behavior:**
+- Loads `cluster-ssh` and `cluster-scp` as needed
+- Keeps all remote work under `OPENCODE_CLUSTER_ROOT`
+- Does not run `rm`, `rmdir`, `mv`, overwrite, or terminate processes without explicit confirmation
+- Never creates or interrupts screen sessions automatically
+- Stops and asks when remote configuration is incomplete
 
-#### Shell Mode
+**Example:** `cluster/job "run tests and deploy"`
 
-```bash
-# Only when shell syntax is required
-shell: "ls -la /path/to/directory | grep .txt"
-```
+---
 
-### Remote-Root Containment
+### cluster/pull
+
+**Description:** Download a file or folder from the configured remote host.
+
+**Behavior:**
+- Loads `cluster-ssh` and `cluster-scp`
+- Parses the first token as a path relative to `OPENCODE_CLUSTER_ROOT`
+- Verifies it remotely
+- Downloads it to the matching local relative path
+- Does not delete an existing local target without confirmation
+
+**Example:** `cluster/pull logs/output.log`
+
+---
+
+### cluster/push
+
+**Description:** Upload a local file or folder to the configured remote host.
+
+**Behavior:**
+- Loads `cluster-scp`
+- If no path is supplied, stops with `no target specified, usage: cluster.push <local-path>`
+- Parses the first token as the local path
+- Mirrors it below `OPENCODE_CLUSTER_ROOT` by default
+- If the user explicitly says `root`, uploads its contents to the remote root
+- Verifies the local path and remote parent before transferring
+
+**Example:** `cluster/push config/settings.yaml`
+
+---
+
+### cluster/run
+
+**Description:** Run a script or command on the configured remote host.
+
+**Behavior:**
+- Loads `cluster-ssh`
+- Verifies `OPENCODE_CLUSTER_USER`, `OPENCODE_CLUSTER_HOST`, and `OPENCODE_CLUSTER_ROOT`
+- Changes to the configured root
+- Activates the configured virtualenv if present
+- Runs only the command explicitly provided by the user
+- Uses an existing configured screen session for long-running work
+
+**Example:** `cluster/run "python manage.py migrate"`
+
+---
+
+### cluster/update-packages
+
+**Description:** Inspect and synchronize dependencies on a configured remote project.
+
+**Behavior:**
+- Loads `cluster-ssh`, `cluster-scp`, and `package-management`
+- Detects the active repository's dependency manifests and package manager
+- Does not assume `requirements.txt` or Python
+- Shows proposed local and remote changes before installing anything
+- Does not modify a remote environment without explicit user approval
+
+**Example:** `cluster/update-packages`
+
+---
+
+## Remote-Root Containment
 
 All remote operations must stay below configured remote root:
 - `/home/user/project/` (POSIX)
 - `C:\Users\user\project\` (Windows)
-
-### Symlink Policy
-
-- Follow symlinks within remote root
-- Reject symlinks outside remote root
-- Report symlink targets in preview
-
-### Timeout and Cancellation
-
-- Default timeout: 300 seconds
-- Configurable per command
-- Support cancellation via signal
-
-### Output Capture
-
-- Capture stdout and stderr
-- Bound output size (1MB default)
-- Preserve timeout context
-
-### Retries
-
-- Default retries: 3
-- Exponential backoff
-- Configurable per command
-
-### Overwrite Rules
-
-- Never overwrite without `--force`
-- Preview before overwrite
-- Require confirmation for destructive overwrites
 
 ## Destructive Commands
 
@@ -248,8 +177,8 @@ Before executing destructive commands:
 
 ## Best Practices
 
-1. **Use argument arrays**: Prefer over shell strings
-2. **Preview before mutation**: Show changes before applying
-3. **Require confirmation**: For all mutations
+1. **Preview before mutation**: Show changes before applying
+2. **Require confirmation**: For all mutations
+3. **Use argument arrays**: Prefer over shell strings when possible
 4. **Bound output**: Prevent unbounded capture
 5. **Classify destructive**: Require approval for dangerous operations
