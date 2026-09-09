@@ -3,6 +3,7 @@
 Commands are grouped by their invocation prefix:
 
 - `dev.*`: implementation, builds, documentation, reviews, and startup.
+- `docs.*`: repository documentation updates.
 - `issue.*`: GitHub Issue lifecycle and local issue analysis.
 - `repo.*`: external repository registration.
 - `worktree.*`: concurrent branch checkout and cleanup.
