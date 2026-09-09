@@ -17,6 +17,7 @@ Commands are discovered from `.opencode/commands/` directory. Each command is a 
 │   └── scp.md
 ├── dev/
 │   ├── implement.md
+│   ├── merge-conflict.md
 │   ├── review.md
 │   └── startup/
 │       └── ...
@@ -113,6 +114,7 @@ Every command MUST have an explicit agent assigned. The agent is specified in th
 |---------|-------|-------------|
 | `cluster/scp` | cluster-manager | Transfer files via SCP |
 | `dev/implement` | implementer | Implement features |
+| `dev/merge-conflict` | dev | Resolve merge conflicts for a branch or PR |
 | `dev/review` | reviewer | Review code changes |
 | `dev/startup/*` | startup-manager | Toolkit startup commands |
 | `issue/analyze` | issue-manager | Analyze issues |
