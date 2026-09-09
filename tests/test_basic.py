@@ -159,12 +159,19 @@ def test_commands_exist():
         "review/fix-cr.md",
         "sync/pull.md",
         "sync/push.md",
-        "sync/ship.md"
+        "sync/ship.md",
+        "docs/update.md"
     ]
     
     for command in expected_commands:
         command_file = commands_dir / command
         assert command_file.exists(), f"Command {command} should exist"
+
+
+def test_docs_update_command_accepts_scope_argument():
+    """Test that the docs update command receives its requested scope."""
+    command_file = Path(__file__).parent.parent / ".opencode" / "commands" / "docs" / "update.md"
+    assert "$ARGUMENTS" in command_file.read_text(encoding="utf-8")
 
 
 def test_instructions_exist():
@@ -195,6 +202,7 @@ if __name__ == "__main__":
         test_opencode_json_valid,
         test_skills_exist,
         test_commands_exist,
+        test_docs_update_command_accepts_scope_argument,
         test_instructions_exist
     ]
     
