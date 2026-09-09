@@ -77,6 +77,12 @@ python .opencode/scripts/worktree.py cleanup --closed-prs [--repo <path>] [--app
 2. Check dirty state and closed PR status
 3. Exits immediately for dirty worktrees unless `--force` is provided
 4. Use `--force` only for explicitly approved dirty worktrees
+5. When `--closed-prs` is used, also preview and remove inactive local branches
+   whose pull request was merged into the default branch and whose local tip is
+   at or behind its remote (or last known PR) copy
+
+Local branches currently checked out, attached to an unsafe worktree, or newer
+than their remote copy are never removed.
 
 ## Integration with VS Code
 
