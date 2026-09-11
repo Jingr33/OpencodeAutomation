@@ -80,6 +80,12 @@ Skills are discovered from `.opencode/skills/` directory. Each skill is a direct
 **Directory Structure:**
 ```
 .opencode/skills/
+├── cluster-scp/
+│   └── SKILL.md
+├── cluster-session/
+│   └── SKILL.md
+├── cluster-ssh/
+│   └── SKILL.md
 ├── worktree/
 │   └── SKILL.md
 ├── github-issues/
@@ -174,6 +180,11 @@ grep -r "^---" .opencode/commands/
 ### Skills not discovered
 - Ensure the skill directory exists in `.opencode/skills/`
 - Check the `SKILL.md` file exists in the directory
+
+### Cluster commands use an existing session
+- Load `cluster-session` whenever a command uses Linux `screen` or may outlive SSH
+- Verify `OPENCODE_CLUSTER_SCREEN` before running a long-lived command
+- Stop when the configured session is missing or busy; never create or interrupt it
 
 ## Best Practices
 

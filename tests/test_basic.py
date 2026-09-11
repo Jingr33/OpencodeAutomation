@@ -128,6 +128,7 @@ def test_skills_exist():
         "code-review",
         "cluster-ssh",
         "cluster-scp",
+        "cluster-session",
         "package-management",
         "repository",
         "toolkit-startup-react",
@@ -192,6 +193,39 @@ def test_cluster_commands_are_complete_and_configured():
     )
     assert "446-a336-j4.vscht.cz" not in all_cluster_text
     assert "Heslo6813" not in all_cluster_text
+
+
+def test_cluster_prompts_define_explicit_workflows():
+    """Ensure cluster prompts describe their required execution contracts."""
+    commands_dir = Path(__file__).parent.parent / ".opencode" / "commands" / "cluster"
+    required_terms = {
+        "job.md": ["$ARGUMENTS", "cluster-session", "verify", "report"],
+        "pull.md": ["files-only", "cluster-scp", "retry", "overwrite"],
+        "push.md": ["root mode", "cluster-scp", "remote parent", "overwrite"],
+        "push-src.md": ["src", "contents", "cluster-scp", "retry"],
+        "run.md": ["$ARGUMENTS", "cluster-session", "OPENCODE_CLUSTER_VENV", "exit/result"],
+        "update-packages.md": [
+            "package-management",
+            "proposed plan",
+            "explicit approval",
+            "cluster-session",
+        ],
+    }
+
+    for filename, terms in required_terms.items():
+        text = (commands_dir / filename).read_text(encoding="utf-8").lower()
+        for term in terms:
+            assert term.lower() in text, f"{filename} should document {term}"
+
+    session_skill = (
+        Path(__file__).parent.parent
+        / ".opencode"
+        / "skills"
+        / "cluster-session"
+        / "SKILL.md"
+    ).read_text(encoding="utf-8").lower()
+    for term in ["screen -ls", "no available screen to use", "never create", "busy"]:
+        assert term in session_skill
 
 
 def test_docs_update_command_accepts_scope_argument():
