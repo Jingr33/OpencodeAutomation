@@ -168,6 +168,32 @@ def test_commands_exist():
         assert command_file.exists(), f"Command {command} should exist"
 
 
+def test_cluster_commands_are_complete_and_configured():
+    """Ensure every source cluster command has a generic local counterpart."""
+    commands_dir = Path(__file__).parent.parent / ".opencode" / "commands" / "cluster"
+    expected_commands = {
+        "job.md",
+        "pull.md",
+        "push.md",
+        "push-src.md",
+        "run.md",
+        "update-packages.md",
+    }
+
+    assert {path.name for path in commands_dir.glob("*.md")} == expected_commands
+    for command_file in commands_dir.glob("*.md"):
+        frontmatter = command_file.read_text(encoding="utf-8").split("---", 2)
+        assert len(frontmatter) == 3
+        assert "agent: cluster" in frontmatter[1]
+
+    all_cluster_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in commands_dir.glob("*.md")
+    )
+    assert "446-a336-j4.vscht.cz" not in all_cluster_text
+    assert "Heslo6813" not in all_cluster_text
+
+
 def test_docs_update_command_accepts_scope_argument():
     """Test that the docs update command receives its requested scope."""
     command_file = Path(__file__).parent.parent / ".opencode" / "commands" / "docs" / "update.md"

@@ -14,7 +14,12 @@ Commands are discovered from `.opencode/commands/` directory. Each command is a 
 ```
 .opencode/commands/
 ├── cluster/
-│   └── scp.md
+│   ├── job.md
+│   ├── pull.md
+│   ├── push.md
+│   ├── push-src.md
+│   ├── run.md
+│   └── update-packages.md
 ├── dev/
 │   ├── implement.md
 │   ├── merge-conflict.md
@@ -112,7 +117,12 @@ Every command MUST have an explicit agent assigned. The agent is specified in th
 
 | Command | Agent | Description |
 |---------|-------|-------------|
-| `cluster/scp` | cluster-manager | Transfer files via SCP |
+| `cluster/job` | cluster | Execute a multi-step remote job |
+| `cluster/pull` | cluster | Download files from a configured remote host |
+| `cluster/push` | cluster | Upload files to a configured remote host |
+| `cluster/push-src` | cluster | Upload a directory's contents to the remote root |
+| `cluster/run` | cluster | Run an explicitly requested remote command |
+| `cluster/update-packages` | cluster | Synchronize configured remote dependencies |
 | `dev/implement` | implementer | Implement features |
 | `dev/merge-conflict` | dev | Resolve merge conflicts for a branch or PR |
 | `dev/review` | reviewer | Review code changes |

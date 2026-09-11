@@ -79,6 +79,7 @@ based on the actual command files in `.opencode/commands/sync/` and
 - Parses the first token as a path relative to `OPENCODE_CLUSTER_ROOT`
 - Verifies it remotely
 - Downloads it to the matching local relative path
+- With `files-only`, lists and downloads only direct files from a remote directory
 - Does not delete an existing local target without confirmation
 
 **Example:** `cluster/pull logs/output.log`
@@ -98,6 +99,22 @@ based on the actual command files in `.opencode/commands/sync/` and
 - Verifies the local path and remote parent before transferring
 
 **Example:** `cluster/push config/settings.yaml`
+
+---
+
+### cluster/push-src
+
+**Description:** Upload the contents of a local directory to the configured
+remote project root.
+
+**Behavior:**
+- Loads `cluster-scp`
+- Uses the supplied local directory, or `src` when no argument is supplied
+- Verifies the local directory and configured remote root
+- Uploads the directory's contents without adding an extra directory level
+- Shows the local and remote paths before transferring
+
+**Example:** `cluster/push-src src`
 
 ---
 

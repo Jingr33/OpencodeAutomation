@@ -6,4 +6,6 @@ subtask: true
 
 Load `cluster-ssh` and `cluster-scp`. Parse the first token as a path relative to
 `OPENCODE_CLUSTER_ROOT`, verify it remotely, and download it to the matching local
-relative path. Do not delete an existing local target without confirmation.
+relative path. If the user requests `files-only`, list only direct files in the
+remote directory and transfer those files individually. Do not delete an
+existing local target without confirmation.
