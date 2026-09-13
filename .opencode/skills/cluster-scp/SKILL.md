@@ -10,22 +10,28 @@ compatibility: opencode
 1. Verify `OPENCODE_CLUSTER_USER`, `OPENCODE_CLUSTER_HOST`, and
    `OPENCODE_CLUSTER_ROOT`. Stop with `cluster configuration is incomplete` if
    any value is missing.
-2. Parse the local or remote path as a path relative to the appropriate root.
+2. If `OPENCODE_CLUSTER_CREDENTIAL_TARGET` is set, run
+   `.opencode/scripts/cluster_credentials.py scp -- ...` so the secret is read
+   from Windows Credential Manager at runtime. Otherwise use SSH keys or the
+   SSH agent. Never manually place a password in a command, prompt, or log;
+   let the helper pass it to PuTTY only at runtime.
+3. Parse the local or remote path as a path relative to the appropriate root.
    Reject absolute paths and `..` components that escape the root. Never infer
    a path from a host-specific example.
-3. For uploads, verify the local source exists, calculate the remote target,
+4. For uploads, verify the local source exists, calculate the remote target,
    verify its remote parent, and show the mapping before transferring.
-4. For downloads, verify the remote source exists, calculate the local target,
+5. For downloads, verify the remote source exists, calculate the local target,
    verify its local parent, and show the mapping before transferring.
-5. Mirror the path below `OPENCODE_CLUSTER_ROOT` by default. In explicit `root`
+6. Mirror the path below `OPENCODE_CLUSTER_ROOT` by default. In explicit `root`
    mode, copy a directory's contents directly into the remote root instead of
    adding the source directory name.
-6. If the transfer would overwrite an existing target, stop and request
+7. If the transfer would overwrite an existing target, stop and request
    confirmation. Never remove local data or use a destructive remote command to
    make a transfer work.
-7. Retry one failed transfer. If the retry fails, report
+8. Retry one failed transfer. If the retry fails, report
    `connection closed, unable to connect to remote server` and include the
    source, target, and partial-transfer state.
 
-Use key-based authentication or the user's SSH agent. Never store or request a
-password in this skill, prompt, command file, or transfer log.
+Use key-based authentication or the user's SSH agent when no credential target
+is configured. Never store or request a password in this skill, prompt, command
+file, or transfer log.

@@ -19,8 +19,9 @@ loaded skill's numbered workflow rather than improvising a shortcut.
 
 Never assume a host, user, project path, password, virtual environment, or
 screen name: use the `OPENCODE_CLUSTER_*` configuration described by the
-skills. Before acting, state the parsed arguments, remote root, target mapping,
-and whether the command will run directly or in the existing configured
-session. Do not modify local files. Never run destructive remote commands,
-overwrite transfer targets, install packages, or control processes without
-explicit confirmation.
+skills. If a credential target is configured, use the credential helper and
+never ask the user to paste the secret. Before acting, state the parsed
+arguments, remote root, target mapping, and whether the command will run
+directly or in the existing configured session. Do not modify local files.
+Never run destructive remote commands, overwrite transfer targets, install
+packages, or control processes without explicit confirmation.

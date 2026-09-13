@@ -191,8 +191,8 @@ def test_cluster_commands_are_complete_and_configured():
         path.read_text(encoding="utf-8")
         for path in commands_dir.glob("*.md")
     )
-    assert "446-a336-j4.vscht.cz" not in all_cluster_text
-    assert "Heslo6813" not in all_cluster_text
+    assert "-pw " not in all_cluster_text
+    assert "password:" not in all_cluster_text.lower()
 
 
 def test_cluster_prompts_define_explicit_workflows():
@@ -226,6 +226,30 @@ def test_cluster_prompts_define_explicit_workflows():
     ).read_text(encoding="utf-8").lower()
     for term in ["screen -ls", "no available screen to use", "never create", "busy"]:
         assert term in session_skill
+
+
+def test_cluster_credentials_are_configured_without_embedded_secrets():
+    """Ensure cluster authentication uses the runtime credential helper."""
+    from cluster_credentials import Credential, CredentialError
+
+    assert Credential("user", "secret").username == "user"
+    assert issubclass(CredentialError, RuntimeError)
+
+    config = (Path(__file__).parent.parent / ".opencode" / "config.example.env").read_text(
+        encoding="utf-8"
+    )
+    assert "OPENCODE_CLUSTER_CREDENTIAL_TARGET=" in config
+    assert "OPENCODE_CLUSTER_SSH_CLIENT=" in config
+    assert "OPENCODE_CLUSTER_SCP_CLIENT=" in config
+
+    cluster_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (Path(__file__).parent.parent / ".opencode").rglob("*")
+        if path.is_file()
+        and path.suffix in {".env", ".md", ".py"}
+        and "node_modules" not in path.parts
+    )
+    assert "-pw " not in cluster_text
 
 
 def test_docs_update_command_accepts_scope_argument():

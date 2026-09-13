@@ -11,7 +11,10 @@ Configuration is supplied through environment variables:
 - `OPENCODE_CLUSTER_ROOT` is the remote project root.
 - `OPENCODE_CLUSTER_VENV` is an optional virtualenv path relative to the root.
 - `OPENCODE_CLUSTER_SCREEN` is an optional screen session name.
-- `OPENCODE_CLUSTER_SSH_COMMAND` can override the SSH client command.
+- `OPENCODE_CLUSTER_CREDENTIAL_TARGET` optionally names a generic credential
+  stored in Windows Credential Manager.
+- `OPENCODE_CLUSTER_SSH_CLIENT` can override the SSH client executable.
+- `OPENCODE_CLUSTER_SSH_COMMAND` remains supported as a legacy SSH override.
 
 ## Mandatory Workflow
 
@@ -21,7 +24,11 @@ Configuration is supplied through environment variables:
    `OPENCODE_CLUSTER_ROOT`. Stop with `cluster configuration is incomplete` if
    any required value is missing.
 3. Build the endpoint from the configured user and host. Never use a host,
-   user, password, or path from an example or from another repository.
+   user, password, or path from an example or from another repository. If
+   `OPENCODE_CLUSTER_CREDENTIAL_TARGET` is set, run
+   `.opencode/scripts/cluster_credentials.py ssh -- ...` so the helper reads
+   the secret at runtime. Do not use `cmdkey`, hard-code a password, or place
+   a secret in a command prompt, log, or summary.
 4. Verify connectivity and the remote root before running the requested
    command. Stop with `cannot find the configured remote root` when the root
    cannot be verified.
@@ -38,5 +45,7 @@ Configuration is supplied through environment variables:
    otherwise report the original command, failure, and partial result.
 
 Keep all paths below `OPENCODE_CLUSTER_ROOT`, require confirmation before
-destructive commands, and use key-based authentication or the user's SSH agent.
-Never expose passwords or private keys in prompts, files, or command output.
+destructive commands, and prefer key-based authentication or the user's SSH
+agent. Windows Credential Manager is an opt-in fallback for the helper and
+PuTTY's `plink`; OpenSSH cannot consume a stored password directly. Never
+expose passwords or private keys in prompts, files, or command output.
