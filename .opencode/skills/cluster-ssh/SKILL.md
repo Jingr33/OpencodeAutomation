@@ -1,6 +1,6 @@
 ---
 name: cluster-ssh
-description: Executes explicitly requested commands on a configurable remote host with optional virtualenv and screen setup
+description: Executes explicitly requested commands on a configurable Linux cluster with root and virtualenv validation; use cluster-session for existing screen sessions
 license: MIT
 compatibility: opencode
 ---
@@ -11,9 +11,41 @@ Configuration is supplied through environment variables:
 - `OPENCODE_CLUSTER_ROOT` is the remote project root.
 - `OPENCODE_CLUSTER_VENV` is an optional virtualenv path relative to the root.
 - `OPENCODE_CLUSTER_SCREEN` is an optional screen session name.
-- `OPENCODE_CLUSTER_SSH_COMMAND` can override the SSH client command.
+- `OPENCODE_CLUSTER_CREDENTIAL_TARGET` optionally names a generic credential
+  stored in Windows Credential Manager.
+- `OPENCODE_CLUSTER_SSH_CLIENT` can override the SSH client executable.
+- `OPENCODE_CLUSTER_SSH_COMMAND` remains supported as a legacy SSH override.
 
-Verify the host and root before acting. Activate the virtual environment only if
-configured. Use an existing screen session for long-running commands; never
-create or interrupt one automatically. Do not expose passwords in prompts or
-files. Configure key-based authentication or the user's SSH agent.
+## Mandatory Workflow
+
+1. Confirm the requested command is explicit and determine whether it is a
+   read-only preflight, a short direct command, or a long-running job.
+2. Verify `OPENCODE_CLUSTER_USER`, `OPENCODE_CLUSTER_HOST`, and
+   `OPENCODE_CLUSTER_ROOT`. Stop with `cluster configuration is incomplete` if
+   any required value is missing.
+3. Build the endpoint from the configured user and host. Never use a host,
+   user, password, or path from an example or from another repository. If
+   `OPENCODE_CLUSTER_CREDENTIAL_TARGET` is set, run
+   `.opencode/scripts/cluster_credentials.py ssh -- ...` so the helper reads
+   the secret at runtime. Do not use `cmdkey`, hard-code a password, or place
+   a secret in a command prompt, log, or summary.
+4. Verify connectivity and the remote root before running the requested
+   command. Stop with `cannot find the configured remote root` when the root
+   cannot be verified.
+5. Start every remote command with the configured root as its working
+   directory. A configured `OPENCODE_CLUSTER_VENV` is relative to that root;
+   verify it exists and activate it before running Python or package commands.
+   Stop with `unable to use configured virtual environment` if validation or
+   activation fails.
+6. Run only the command explicitly requested by the user. Do not append
+   cleanup, synchronization, package installation, or process-control steps.
+7. For screen work, load `cluster-session` and follow its exact existing-session
+   workflow. This skill never creates, interrupts, detaches, or kills sessions.
+8. Retry one failed connection or command only when the failure is transient;
+   otherwise report the original command, failure, and partial result.
+
+Keep all paths below `OPENCODE_CLUSTER_ROOT`, require confirmation before
+destructive commands, and prefer key-based authentication or the user's SSH
+agent. Windows Credential Manager is an opt-in fallback for the helper and
+PuTTY's `plink`; OpenSSH cannot consume a stored password directly. Never
+expose passwords or private keys in prompts, files, or command output.

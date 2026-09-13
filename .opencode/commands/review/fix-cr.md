@@ -10,4 +10,6 @@ question, acknowledgment, outdated comment, or skipped item, and process every
 unresolved thread. Implement fixes and run relevant checks before replying.
 Without `force`, stop before commit/push and ask for confirmation. With `force`,
 commit and push only the requested branch. Write a review-fix summary using
-`.opencode/templates/fix-cr.md` and never create a new PR.
+`.opencode/templates/fix-cr.md`, but never stage or commit the generated
+`.opencode/docs/fix-cr-pr*.md` summary file; it must remain local and
+uncommitted. Never create a new PR.

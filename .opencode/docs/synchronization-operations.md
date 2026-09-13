@@ -57,14 +57,22 @@ based on the actual command files in `.opencode/commands/sync/` and
 
 ### cluster/job
 
-**Description:** Execute a user-described multi-step remote job safely.
+**Description:** Execute a user-described multi-step job on a configured Linux
+cluster safely.
 
-**Behavior:**
-- Loads `cluster-ssh` and `cluster-scp` as needed
-- Keeps all remote work under `OPENCODE_CLUSTER_ROOT`
-- Does not run `rm`, `rmdir`, `mv`, overwrite, or terminate processes without explicit confirmation
-- Never creates or interrupts screen sessions automatically
-- Stops and asks when remote configuration is incomplete
+**Workflow:**
+1. Parse the user's description into local preparation, transfers, remote
+   commands, and downloads.
+2. Stop and ask when a path, operation, execution mode, or destructive impact
+   is ambiguous.
+3. Show the planned order, path mappings, remote root, and direct-versus-screen
+   mode.
+4. Validate `OPENCODE_CLUSTER_*` settings and the remote root.
+5. Transfer with `cluster-scp`, execute with `cluster-ssh`, and verify each
+   dependent step before continuing.
+6. Use `cluster-session` for long-running work; require the configured existing
+   idle screen session and stop if it is missing or busy.
+7. Report completed steps, partial results, failures, and skipped steps.
 
 **Example:** `cluster/job "run tests and deploy"`
 
@@ -72,14 +80,19 @@ based on the actual command files in `.opencode/commands/sync/` and
 
 ### cluster/pull
 
-**Description:** Download a file or folder from the configured remote host.
+**Description:** Download a file or folder from a configured Linux cluster.
 
-**Behavior:**
-- Loads `cluster-ssh` and `cluster-scp`
-- Parses the first token as a path relative to `OPENCODE_CLUSTER_ROOT`
-- Verifies it remotely
-- Downloads it to the matching local relative path
-- Does not delete an existing local target without confirmation
+**Workflow:**
+1. Parse the first argument as a remote-relative path and recognize
+   `files-only` as a direct-files-only option.
+2. Reject root escapes, validate cluster configuration, and verify the remote
+   source before downloading.
+3. Map the source to the same local relative path and check the local parent.
+4. Request confirmation before overwriting or merging into an existing target.
+5. In `files-only` mode, list direct regular files and transfer each one;
+   never recurse into subdirectories.
+6. Retry one failed transfer, verify the local result, and report partial
+   completion.
 
 **Example:** `cluster/pull logs/output.log`
 
@@ -87,31 +100,56 @@ based on the actual command files in `.opencode/commands/sync/` and
 
 ### cluster/push
 
-**Description:** Upload a local file or folder to the configured remote host.
+**Description:** Upload a local file or folder to a configured Linux cluster.
 
-**Behavior:**
-- Loads `cluster-scp`
-- If no path is supplied, stops with `no target specified, usage: cluster.push <local-path>`
-- Parses the first token as the local path
-- Mirrors it below `OPENCODE_CLUSTER_ROOT` by default
-- If the user explicitly says `root`, uploads its contents to the remote root
-- Verifies the local path and remote parent before transferring
+**Workflow:**
+1. Parse the first argument as the local source and recognize only explicit
+   `root` mode as a mapping override.
+2. Verify the local source and reject paths outside the active repository unless
+   explicitly confirmed.
+3. Map the source to the remote root, show the mapping, and check for an
+   existing target.
+4. Request confirmation before overwriting remote data.
+5. Verify the remote parent, transfer recursively with one retry, and verify the
+   result without deleting or moving remote data.
 
 **Example:** `cluster/push config/settings.yaml`
 
 ---
 
+### cluster/push-src
+
+**Description:** Upload a local directory's contents to a configured Linux
+cluster root.
+
+**Workflow:**
+1. Use the supplied local directory or `src` when no argument is supplied.
+2. Verify the local directory and cluster configuration, then verify the remote
+   root.
+3. Show the root-mode mapping and request confirmation before overwriting.
+4. Transfer contents directly below the remote root, preserving subdirectories;
+   do not add an extra source-directory level.
+5. Verify the result, retrying one failed transfer, and report partial state.
+
+**Example:** `cluster/push-src src`
+
+---
+
 ### cluster/run
 
-**Description:** Run a script or command on the configured remote host.
+**Description:** Run an explicit command on a configured Linux cluster.
 
-**Behavior:**
-- Loads `cluster-ssh`
-- Verifies `OPENCODE_CLUSTER_USER`, `OPENCODE_CLUSTER_HOST`, and `OPENCODE_CLUSTER_ROOT`
-- Changes to the configured root
-- Activates the configured virtualenv if present
-- Runs only the command explicitly provided by the user
-- Uses an existing configured screen session for long-running work
+**Workflow:**
+1. Preserve the complete argument string as the requested command; do not add
+   flags or cleanup.
+2. Validate the cluster configuration and remote root.
+3. Activate the configured virtualenv only after verifying its relative path.
+4. Run short read-only commands directly; use `cluster-session` for explicit or
+   inferred long-running work.
+5. For screen work, verify the configured existing session is present and idle;
+   never create, detach, interrupt, or kill it.
+6. Capture bounded direct output or the last observed screen output and report
+   the mode, result, command, and root.
 
 **Example:** `cluster/run "python manage.py migrate"`
 
@@ -119,14 +157,22 @@ based on the actual command files in `.opencode/commands/sync/` and
 
 ### cluster/update-packages
 
-**Description:** Inspect and synchronize dependencies on a configured remote project.
+**Description:** Inspect and synchronize dependencies on a configured Linux
+cluster project.
 
-**Behavior:**
-- Loads `cluster-ssh`, `cluster-scp`, and `package-management`
-- Detects the active repository's dependency manifests and package manager
-- Does not assume `requirements.txt` or Python
-- Shows proposed local and remote changes before installing anything
-- Does not modify a remote environment without explicit user approval
+**Workflow:**
+1. Detect local dependency manifests and the package manager instead of assuming
+   Python or `requirements.txt`.
+2. Determine whether the user requested inspection, manifest changes, remote
+   synchronization, installation, or verification.
+3. Compare local and remote state with read-only checks and show a proposed
+   mutation plan before editing or installing.
+4. After approval, update and transfer only the requested manifests.
+5. Activate the configured virtualenv when applicable and run the exact package
+   manager synchronization command from the remote root.
+6. Use `cluster-session` for long installations and stop when the configured
+   session is missing or busy.
+7. Verify versions or imports and report all changes, output, and partial state.
 
 **Example:** `cluster/update-packages`
 

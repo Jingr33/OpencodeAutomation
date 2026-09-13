@@ -16,5 +16,7 @@ worktrees for external target repositories are added to the VS Code
 multi-root workspace automatically by `/issue.create` and `/dev.implement`.
 
 Agents and skills are generic. They inspect the active repository instead of
-assuming the source layout from MedSAM or Auto Annotater. Cluster credentials
-and paths are supplied through environment variables and are never stored here.
+assuming the source layout from MedSAM or Auto Annotater. Cluster paths are
+supplied through environment variables and secrets are never stored here. SSH
+keys or an SSH agent are preferred; on Windows, an optional generic credential
+target is read at runtime through `.opencode/scripts/cluster_credentials.py`.

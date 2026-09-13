@@ -128,6 +128,7 @@ def test_skills_exist():
         "code-review",
         "cluster-ssh",
         "cluster-scp",
+        "cluster-session",
         "package-management",
         "repository",
         "toolkit-startup-react",
@@ -166,6 +167,89 @@ def test_commands_exist():
     for command in expected_commands:
         command_file = commands_dir / command
         assert command_file.exists(), f"Command {command} should exist"
+
+
+def test_cluster_commands_are_complete_and_configured():
+    """Ensure every source cluster command has a generic local counterpart."""
+    commands_dir = Path(__file__).parent.parent / ".opencode" / "commands" / "cluster"
+    expected_commands = {
+        "job.md",
+        "pull.md",
+        "push.md",
+        "push-src.md",
+        "run.md",
+        "update-packages.md",
+    }
+
+    assert {path.name for path in commands_dir.glob("*.md")} == expected_commands
+    for command_file in commands_dir.glob("*.md"):
+        frontmatter = command_file.read_text(encoding="utf-8").split("---", 2)
+        assert len(frontmatter) == 3
+        assert "agent: cluster" in frontmatter[1]
+
+    all_cluster_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in commands_dir.glob("*.md")
+    )
+    assert "-pw " not in all_cluster_text
+    assert "password:" not in all_cluster_text.lower()
+
+
+def test_cluster_prompts_define_explicit_workflows():
+    """Ensure cluster prompts describe their required execution contracts."""
+    commands_dir = Path(__file__).parent.parent / ".opencode" / "commands" / "cluster"
+    required_terms = {
+        "job.md": ["$ARGUMENTS", "cluster-session", "verify", "report"],
+        "pull.md": ["files-only", "cluster-scp", "retry", "overwrite"],
+        "push.md": ["root mode", "cluster-scp", "remote parent", "overwrite"],
+        "push-src.md": ["src", "contents", "cluster-scp", "retry"],
+        "run.md": ["$ARGUMENTS", "cluster-session", "OPENCODE_CLUSTER_VENV", "exit/result"],
+        "update-packages.md": [
+            "package-management",
+            "proposed plan",
+            "explicit approval",
+            "cluster-session",
+        ],
+    }
+
+    for filename, terms in required_terms.items():
+        text = (commands_dir / filename).read_text(encoding="utf-8").lower()
+        for term in terms:
+            assert term.lower() in text, f"{filename} should document {term}"
+
+    session_skill = (
+        Path(__file__).parent.parent
+        / ".opencode"
+        / "skills"
+        / "cluster-session"
+        / "SKILL.md"
+    ).read_text(encoding="utf-8").lower()
+    for term in ["screen -ls", "no available screen to use", "never create", "busy"]:
+        assert term in session_skill
+
+
+def test_cluster_credentials_are_configured_without_embedded_secrets():
+    """Ensure cluster authentication uses the runtime credential helper."""
+    from cluster_credentials import Credential, CredentialError
+
+    assert Credential("user", "secret").username == "user"
+    assert issubclass(CredentialError, RuntimeError)
+
+    config = (Path(__file__).parent.parent / ".opencode" / "config.example.env").read_text(
+        encoding="utf-8"
+    )
+    assert "OPENCODE_CLUSTER_CREDENTIAL_TARGET=" in config
+    assert "OPENCODE_CLUSTER_SSH_CLIENT=" in config
+    assert "OPENCODE_CLUSTER_SCP_CLIENT=" in config
+
+    cluster_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (Path(__file__).parent.parent / ".opencode").rglob("*")
+        if path.is_file()
+        and path.suffix in {".env", ".md", ".py"}
+        and "node_modules" not in path.parts
+    )
+    assert "-pw " not in cluster_text
 
 
 def test_docs_update_command_accepts_scope_argument():
