@@ -1,5 +1,9 @@
 # C# Coding Standards
 
+These standards apply when working on C#/.NET target repositories. They do not
+change the language-agnostic conventions of this Python automation framework;
+follow the target repository's instructions when they are more specific.
+
 ## General Principles
 
 1. **Readability First**: Write code that is easy to read and understand
@@ -26,14 +30,19 @@
 ### Private Fields (underscore-prefixed camelCase)
 - **Private Fields**: `_userService`, `_orderProcessor`
 
+### Protected Members
+- **Protected Fields**: Use the underscore-prefixed camelCase convention, such as `_userService`.
+- **Protected Properties, Methods, and Events**: Use PascalCase, such as `UserId` or `Initialize`.
+- Use protected members deliberately because they form part of the contract for derived classes.
+
 ### PascalCase (for specific cases)
 - **Private Constants**: `MaxRetryCount`, `DefaultTimeout`
 - **Private Static Readonly**: `DefaultTimeout`
 
 ## File Organization
 
-1. **One class per file** (except small nested classes)
-2. **File name matches class name**
+1. **One type per file** (nested types are the exception; do not place multiple top-level classes, records, or enums in one file)
+2. **File name matches the primary type name**
 3. **Organize by feature** when possible:
    ```
    Features/
@@ -57,28 +66,19 @@ using System.Threading.Tasks;
 // 2. Namespace
 namespace MyApp.Features.Users
 {
-    // 3. Class declaration
-    public class UserService
+    // 3. Class declaration and primary constructor (C# 12+)
+    public class UserService(IUserRepository userRepository)
     {
-        // 4. Private fields
-        private readonly IUserRepository _userRepository;
-        
-        // 5. Constructor
-        public UserService(IUserRepository userRepository)
-        {
-            _userRepository = userRepository;
-        }
-        
-        // 6. Public properties
+        // 4. Public properties
         public bool IsInitialized { get; private set; }
         
-        // 7. Public methods
+        // 5. Public instance methods
         public async Task<User> GetUserByIdAsync(int userId)
         {
-            return await _userRepository.GetByIdAsync(userId);
+            return await userRepository.GetByIdAsync(userId);
         }
         
-        // 8. Private methods
+        // 6. Private methods
         private void Initialize()
         {
             IsInitialized = true;
@@ -96,8 +96,14 @@ namespace MyApp.Features.Users
 
 ### Parameters
 - Maximum 3-4 parameters
-- Use objects for complex parameter lists
+- For many related parameters, use a `record`, `record struct`, or `struct` to transfer them as one value
 - Prefer `CancellationToken` as last parameter for async methods
+
+```csharp
+public readonly record struct GetUserRequest(int UserId);
+```
+
+Keep a production request type in its own file. Use a `record struct` for small value-like requests and a `record` when reference semantics are more appropriate.
 
 ```csharp
 // Good
@@ -117,12 +123,27 @@ public async Task<User> GetUserAsync(
 }
 ```
 
+- Use a semicolon for declarations without an implementation, such as interface
+  or abstract members; use braces only when declaring a type or providing an
+  implementation.
+
+### Method Ordering and Static Methods
+- Place public instance methods before public static methods when organizing a type.
+- Keep related static methods together under the instance methods rather than mixing them into the instance API.
+- When a type accumulates many cohesive static methods, consider extracting them into a dedicated static extension-method class when those methods naturally extend another type.
+
 ### Return Types
 - Use `Task<T>` for async methods
 - Use `ValueTask<T>` for hot paths with potential synchronous completion
 - Use `IEnumerable<T>` or `IAsyncEnumerable<T>` for collections
 
 ## Async/Await Patterns
+
+The examples in this section apply to C#/.NET target repositories. Use
+`ConfigureAwait(false)` deliberately in reusable library code when avoiding
+context capture is part of the target project's design. Do not add it
+universally to application code; follow the target repository's established
+conventions.
 
 ```csharp
 // Always use CancellationToken
@@ -137,7 +158,7 @@ public async Task ProcessOrderAsync(Order order, CancellationToken cancellationT
     await _orderRepository.SaveAsync(order, cancellationToken).ConfigureAwait(false);
 }
 
-// Use ConfigureAwait(false) in library code
+// Use ConfigureAwait(false) deliberately in reusable library code
 public async Task<Results> GetResultsAsync(CancellationToken cancellationToken)
 {
     return await _dataProvider.GetResultsAsync(cancellationToken).ConfigureAwait(false);
@@ -173,6 +194,12 @@ public async Task<User> GetUserAsync(int userId, CancellationToken cancellationT
     }
 }
 ```
+
+## Inheritance and Abstract Classes
+
+- Use abstract classes and inheritance when they provide meaningful reuse or a shared base for derived types.
+- Name an abstract base class with the `Base` suffix, such as `RepositoryBase`.
+- Interfaces should use the normal `I` prefix and should not receive the `Base` suffix.
 
 ## Dependency Injection
 
@@ -237,30 +264,3 @@ public async Task GetUserById_WhenUserDoesNotExist_ThrowsUserNotFoundException()
 - Follow **CA** rules for code quality
 - Follow **IDE** rules for IDE suggestions
 - Use **Nullable reference types** enabled project-wide
-
-## Documentation
-
-- Use XML documentation for public APIs
-- Use `/// <summary>` for method descriptions
-- Use `/// <param>` for parameter descriptions
-- Use `/// <returns>` for return value descriptions
-- Use `/// <exception>` for exceptions that may be thrown
-
-```csharp
-/// <summary>
-/// Gets a user by their unique identifier.
-/// </summary>
-/// <param name="userId">The unique identifier of the user.</param>
-/// <param name="cancellationToken">Cancellation token.</param>
-/// <returns>The user if found; otherwise, null.</returns>
-/// <exception cref="ArgumentOutOfRangeException">Thrown when userId is less than or equal to zero.</exception>
-public async Task<User?> GetUserByIdAsync(
-    int userId,
-    CancellationToken cancellationToken = default)
-{
-    if (userId <= 0)
-        throw new ArgumentOutOfRangeException(nameof(userId), userId, "User ID must be positive.");
-    
-    return await _userRepository.GetByIdAsync(userId, cancellationToken);
-}
-```

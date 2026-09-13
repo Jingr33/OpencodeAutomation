@@ -4,6 +4,7 @@
   "instructions": [
     ".opencode/instructions/general.md",
     ".opencode/instructions/coding-standards.md",
+    ".opencode/instructions/coding-standards-csharp.md",
     ".opencode/instructions/github.md",
     ".opencode/instructions/worktrees.md"
   ]
