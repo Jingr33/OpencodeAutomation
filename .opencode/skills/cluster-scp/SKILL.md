@@ -1,6 +1,6 @@
 ---
 name: cluster-scp
-description: Transfers files between the active repository and a configurable remote project root
+description: Transfers files between the active repository and a configurable Linux cluster root with checked path mapping and retry behavior
 license: MIT
 compatibility: opencode
 ---

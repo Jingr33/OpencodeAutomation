@@ -1,6 +1,6 @@
 ---
 name: cluster-ssh
-description: Executes explicitly requested commands on a configurable remote host with optional virtualenv and screen setup
+description: Executes explicitly requested commands on a configurable Linux cluster with root and virtualenv validation; use cluster-session for existing screen sessions
 license: MIT
 compatibility: opencode
 ---

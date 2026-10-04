@@ -1,5 +1,5 @@
 ---
-description: Upload a local file or folder to the configured remote host
+description: Upload a local file or folder to a configured Linux cluster
 agent: cluster
 subtask: true
 ---

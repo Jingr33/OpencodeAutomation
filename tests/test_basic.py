@@ -1,0 +1,306 @@
+"""Basic tests for OpenCode Automation scripts."""
+
+import json
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+# Add scripts directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent / ".opencode" / "scripts"))
+
+
+def test_template_validator():
+    """Test template validation."""
+    try:
+        from template_validator import validate_template, validate_all_templates
+    except ImportError:
+        print("Skipping test_template_validator: template_validator module not found")
+        return
+    
+    # Create a test template
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        f.write("""## Metadata
+- **Type**: feature
+- **Scope**: repository
+
+## Description
+Test description
+
+## Acceptance Criteria
+- [ ] Test criterion
+""")
+        test_file = Path(f.name)
+    
+    try:
+        valid, errors = validate_template(test_file)
+        assert valid, f"Template validation failed: {errors}"
+    finally:
+        test_file.unlink()
+
+
+def test_project_profile_validator():
+    """Test project profile validation."""
+    from project_profile import validate_profile
+    
+    # Valid profile
+    valid_profile = {
+        "version": 1,
+        "projectType": "react",
+        "root": "."
+    }
+    
+    errors = validate_profile(valid_profile)
+    assert len(errors) == 0, f"Valid profile has errors: {errors}"
+    
+    # Invalid profile
+    invalid_profile = {
+        "version": 999,
+        "projectType": "invalid"
+    }
+    
+    errors = validate_profile(invalid_profile)
+    assert len(errors) > 0, "Invalid profile should have errors"
+
+
+def test_context_resolver():
+    """Test context resolution."""
+    from context import resolve_target
+    
+    # Test with explicit repo
+    class Args:
+        repo = str(Path.cwd())
+        source_root = None
+        state_root = None
+        support_root = None
+    
+    result = resolve_target(Args())
+    assert "canonicalPath" in result, "Result should have canonicalPath"
+    assert "managed" in result, "Result should have managed"
+
+
+def test_worktree_script():
+    """Test worktree script imports."""
+    import worktree
+    assert hasattr(worktree, 'create'), "worktree should have create function"
+    assert hasattr(worktree, 'listing'), "worktree should have listing function"
+    assert hasattr(worktree, 'remove'), "worktree should have remove function"
+
+
+def test_repository_script():
+    """Test repository script imports."""
+    import repository
+    assert hasattr(repository, 'add_repository'), "repository should have add_repository function"
+    assert hasattr(repository, 'list_repositories'), "repository should have list_repositories function"
+
+
+def test_process_manager():
+    """Test process manager imports."""
+    import process_manager
+    assert hasattr(process_manager, 'start_process'), "process_manager should have start_process function"
+    assert hasattr(process_manager, 'stop_process'), "process_manager should have stop_process function"
+
+
+def test_command_runner():
+    """Test command runner imports."""
+    import command_runner
+    assert hasattr(command_runner, 'run_command'), "command_runner should have run_command function"
+    assert hasattr(command_runner, 'wait_for_condition'), "command_runner should have wait_for_condition function"
+
+
+def test_opencode_json_valid():
+    """Test opencode.json is valid JSON."""
+    opencode_json = Path(__file__).parent.parent / "opencode.json"
+    if opencode_json.exists():
+        with open(opencode_json, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        assert "instructions" in data, "opencode.json should have instructions"
+
+
+def test_skills_exist():
+    """Test that expected skills exist."""
+    skills_dir = Path(__file__).parent.parent / ".opencode" / "skills"
+    expected_skills = [
+        "worktree",
+        "github-issues",
+        "github-management",
+        "analyze",
+        "code-review",
+        "cluster-ssh",
+        "cluster-scp",
+        "cluster-session",
+        "package-management",
+        "repository",
+        "toolkit-startup-react",
+        "toolkit-startup-node",
+        "toolkit-startup-python",
+        "toolkit-startup-dotnet",
+        "toolkit-startup-godot"
+    ]
+    
+    for skill in expected_skills:
+        skill_dir = skills_dir / skill
+        skill_file = skill_dir / "SKILL.md"
+        assert skill_file.exists(), f"Skill {skill} should exist"
+
+
+def test_commands_exist():
+    """Test that expected commands exist."""
+    commands_dir = Path(__file__).parent.parent / ".opencode" / "commands"
+    expected_commands = [
+        "worktree/create.md",
+        "worktree/list.md",
+        "worktree/remove.md",
+        "worktree/cleanup.md",
+        "issue/analyze.md",
+        "issue/create.md",
+        "issue/fix.md",
+        "issue/migrate.md",
+        "review/cr.md",
+        "review/fix-cr.md",
+        "sync/pull.md",
+        "sync/push.md",
+        "sync/ship.md",
+        "docs/update.md"
+    ]
+    
+    for command in expected_commands:
+        command_file = commands_dir / command
+        assert command_file.exists(), f"Command {command} should exist"
+
+
+def test_cluster_commands_are_complete_and_configured():
+    """Ensure every source cluster command has a generic local counterpart."""
+    commands_dir = Path(__file__).parent.parent / ".opencode" / "commands" / "cluster"
+    expected_commands = {
+        "job.md",
+        "pull.md",
+        "push.md",
+        "push-src.md",
+        "run.md",
+        "update-packages.md",
+    }
+
+    assert {path.name for path in commands_dir.glob("*.md")} == expected_commands
+    for command_file in commands_dir.glob("*.md"):
+        frontmatter = command_file.read_text(encoding="utf-8").split("---", 2)
+        assert len(frontmatter) == 3
+        assert "agent: cluster" in frontmatter[1]
+
+    all_cluster_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in commands_dir.glob("*.md")
+    )
+    assert "-pw " not in all_cluster_text
+    assert "password:" not in all_cluster_text.lower()
+
+
+def test_cluster_prompts_define_explicit_workflows():
+    """Ensure cluster prompts describe their required execution contracts."""
+    commands_dir = Path(__file__).parent.parent / ".opencode" / "commands" / "cluster"
+    required_terms = {
+        "job.md": ["$ARGUMENTS", "cluster-session", "verify", "report"],
+        "pull.md": ["files-only", "cluster-scp", "retry", "overwrite"],
+        "push.md": ["root mode", "cluster-scp", "remote parent", "overwrite"],
+        "push-src.md": ["src", "contents", "cluster-scp", "retry"],
+        "run.md": ["$ARGUMENTS", "cluster-session", "OPENCODE_CLUSTER_VENV", "exit/result"],
+        "update-packages.md": [
+            "package-management",
+            "proposed plan",
+            "explicit approval",
+            "cluster-session",
+        ],
+    }
+
+    for filename, terms in required_terms.items():
+        text = (commands_dir / filename).read_text(encoding="utf-8").lower()
+        for term in terms:
+            assert term.lower() in text, f"{filename} should document {term}"
+
+    session_skill = (
+        Path(__file__).parent.parent
+        / ".opencode"
+        / "skills"
+        / "cluster-session"
+        / "SKILL.md"
+    ).read_text(encoding="utf-8").lower()
+    for term in ["screen -ls", "no available screen to use", "never create", "busy"]:
+        assert term in session_skill
+
+
+def test_cluster_credentials_are_configured_without_embedded_secrets():
+    """Ensure cluster authentication uses the runtime credential helper."""
+    from cluster_credentials import Credential, CredentialError
+
+    assert Credential("user", "secret").username == "user"
+    assert issubclass(CredentialError, RuntimeError)
+
+    config = (Path(__file__).parent.parent / ".opencode" / "config.example.env").read_text(
+        encoding="utf-8"
+    )
+    assert "OPENCODE_CLUSTER_CREDENTIAL_TARGET=" in config
+    assert "OPENCODE_CLUSTER_SSH_CLIENT=" in config
+    assert "OPENCODE_CLUSTER_SCP_CLIENT=" in config
+
+    cluster_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (Path(__file__).parent.parent / ".opencode").rglob("*")
+        if path.is_file()
+        and path.suffix in {".env", ".md", ".py"}
+        and "node_modules" not in path.parts
+    )
+    assert "-pw " not in cluster_text
+
+
+def test_docs_update_command_accepts_scope_argument():
+    """Test that the docs update command receives its requested scope."""
+    command_file = Path(__file__).parent.parent / ".opencode" / "commands" / "docs" / "update.md"
+    assert "$ARGUMENTS" in command_file.read_text(encoding="utf-8")
+
+
+def test_instructions_exist():
+    """Test that expected instructions exist."""
+    instructions_dir = Path(__file__).parent.parent / ".opencode" / "instructions"
+    expected_instructions = [
+        "general.md",
+        "coding-standards.md",
+        "github.md",
+        "worktrees.md"
+    ]
+    
+    for instruction in expected_instructions:
+        instruction_file = instructions_dir / instruction
+        assert instruction_file.exists(), f"Instruction {instruction} should exist"
+
+
+if __name__ == "__main__":
+    # Run all tests
+    tests = [
+        test_template_validator,
+        test_project_profile_validator,
+        test_context_resolver,
+        test_worktree_script,
+        test_repository_script,
+        test_process_manager,
+        test_command_runner,
+        test_opencode_json_valid,
+        test_skills_exist,
+        test_commands_exist,
+        test_docs_update_command_accepts_scope_argument,
+        test_instructions_exist
+    ]
+    
+    passed = 0
+    failed = 0
+    
+    for test in tests:
+        try:
+            test()
+            print(f"✓ {test.__name__}")
+            passed += 1
+        except Exception as e:
+            print(f"✗ {test.__name__}: {e}")
+            failed += 1
+    
+    print(f"\nResults: {passed} passed, {failed} failed")
+    sys.exit(0 if failed == 0 else 1)
