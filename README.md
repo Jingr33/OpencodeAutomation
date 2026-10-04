@@ -18,8 +18,10 @@ from one workspace.
 
 1. Open this repository in OpenCode.
 2. Add a target repository with `/repo.add <url>` or work directly in this repo.
-3. Create an isolated branch with `/worktree.create <branch> [base-branch]`.
-4. Use `/dev.implement <issue-number>` for implementation and `/issue.*` for
+3. Clone a remote repository into a fresh worktree with `/repo.clone <url>` when
+   you only need the checkout and no task yet.
+4. Create an isolated branch with `/worktree.create <branch> [base-branch]`.
+5. Use `/dev.implement <issue-number>` for implementation and `/issue.*` for
    GitHub Issue management.
 
 The repository and worktree locations can be changed with `OPENCODE_REPO_ROOT`
