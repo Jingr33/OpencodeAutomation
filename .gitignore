@@ -3,6 +3,7 @@
 repositories/
 .worktrees/
 .opencode/state/
+.opencode/.env
 .opencode/scripts/__pycache__/
 *.pyc
 

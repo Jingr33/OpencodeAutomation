@@ -4,28 +4,27 @@ agent: cluster
 subtask: true
 ---
 
-Load `cluster-scp`.
+Execute the following workflow exactly:
 
-Follow these steps:
-
-1. If `$ARGUMENTS` is empty, stop with
-   `no target specified, usage: cluster/push <local-path> [root]`.
-2. Parse the first whitespace-separated token as the local path. Treat the
-   remaining text as options. Only an explicit `root` or `root mode` changes
-   the destination mapping; do not infer root mode from the basename.
-3. Verify the local source exists. If it is missing, stop with
-   `cannot find the local target`. Reject paths that resolve outside the active
-   repository unless the user explicitly confirms the external path.
-4. Validate the cluster configuration and calculate the destination:
-   - Default mode mirrors `local/path` below `OPENCODE_CLUSTER_ROOT`.
-   - Root mode uploads a file as `<remote-root>/<basename>` or a directory's
-     contents directly below `<remote-root>`.
-5. Show the local source, remote destination, transfer mode, and whether the
-   target already exists. Request confirmation before any remote overwrite or
-   file or directory.
-6. Verify the remote parent with `cluster-ssh`, then transfer with
-   `cluster-scp`. Preserve recursive directory structure and retry one failed
-   transfer only.
-7. Verify the remote result and report the mapping, transferred entries, and
-   any partial failure. Do not delete or move remote data to make the upload
-   succeed.
+1. Load `cluster-scp`. Load `windows-credential-manager` only when
+   `OPENCODE_CLUSTER_AUTH=windows-credential-manager`.
+2. If `$ARGUMENTS` is empty, stop with:
+   `no target specified, usage: cluster.push <local-path>`.
+3. Parse the first whitespace-separated token as `localPath`. Do not interpret a
+   later `to <path>` token as a destination.
+4. Resolve `localPath` from the active repository/worktree root, never from the
+   automation framework directory. Verify it exists.
+5. Load `OPENCODE_CLUSTER_ENV_FILE`, or `.opencode/.env` in the active
+   repository when the override is unset. Parse only `KEY=VALUE` lines.
+6. Require `OPENCODE_CLUSTER_USER`, `OPENCODE_CLUSTER_HOST`, and
+   `OPENCODE_CLUSTER_ROOT`. Ask for each missing value and confirm whether it is
+   temporary or should be configured externally. Do not connect while any value
+   is missing.
+7. If `localPath` is a directory, upload its contents directly into
+   `OPENCODE_CLUSTER_ROOT` by default. Use the directory itself below the root
+   only when the later arguments contain the explicit word `mirror`.
+8. Verify the remote parent with SSH, then transfer with `scp` or the configured
+   `OPENCODE_CLUSTER_SCP_COMMAND` wrapper. Use `-r` for directories and never
+   pass a password.
+9. Retry one failed transfer. If it fails again, stop with:
+   `connection closed, unable to connect to remote server`.
