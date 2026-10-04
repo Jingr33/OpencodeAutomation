@@ -11,6 +11,9 @@ from one workspace.
   repository, or project number.
 - Repository registration and cloning through `repo.*` commands.
 - Isolated concurrent branches through `worktree.*` commands.
+- Deterministic Python startup through `/dev.startup.python`, including uv,
+  requirements-based virtual environments, preparation, readiness, logs, and
+  process shutdown.
 - Automatic worktree cleanup based on closed pull requests, with explicit
   confirmation before destructive operations.
 

@@ -11,6 +11,10 @@ Commands are grouped by their invocation prefix:
 - `cluster.*`: configurable SSH/SCP remote work.
 - `sync.*`: pull, commit, push, and pull-request workflows.
 
+Python applications use `/dev.startup.python`. It resolves the target
+worktree's `uv`, Poetry, Pipenv, or local virtual-environment toolchain and
+tracks long-running processes through the process manager.
+
 The agentic repository is always changed in its current checkout. Task
 worktrees for external target repositories are added to the VS Code
 multi-root workspace automatically by `/issue.create` and `/dev.implement`.

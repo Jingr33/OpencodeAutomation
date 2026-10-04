@@ -25,8 +25,10 @@ The repository currently contains:
 - 4 instruction files
 - `opencode.json`
 - No automated test suite
-- No project-profile system
-- No process lifecycle manager for application startup
+- Project-profile detection and validation scripts are present; Python runtime
+  resolution supports explicit profiles and common Python manifests
+- A process lifecycle manager is present for tracked startup, readiness, logs,
+  status, and shutdown
 - No formal separation between agentic-repository prompts and working-repository prompts
 - No managed `source/` slot layout for local repositories and worktrees
 
@@ -58,8 +60,8 @@ formats.
    stop and ask the user rather than delete anything.
 5. Prompts for operating the agentic repository and prompts for operating target
    working repositories are not isolated by namespace or dependency set.
-6. Startup commands do not track processes, logs, PIDs, ports, readiness, or
-   shutdown.
+6. Python startup tracks processes, logs, PIDs, ports, readiness, and shutdown;
+   non-Python startup links still need the same runtime integration.
 7. Startup commands contain orchestration logic instead of being links to
    technology-specific startup skills.
 
