@@ -42,6 +42,10 @@ def worktree_root(repo: Path, args: argparse.Namespace) -> Path:
     return Path(configured).expanduser().resolve() if configured else repo / ".worktrees"
 
 
+def branch_path(root: Path, branch: str) -> Path:
+    return root / re.sub(r"[^A-Za-z0-9._-]+", "-", branch).strip("-")
+
+
 def source_root() -> Path:
     configured = os.environ.get("OPENCODE_SOURCE_ROOT", "./source")
     return Path(configured).expanduser().resolve()
