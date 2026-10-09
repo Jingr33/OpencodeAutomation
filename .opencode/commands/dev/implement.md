@@ -27,3 +27,11 @@ Implement GitHub Issue `$ARGUMENTS` in the active repository.
    location and post the summary as an Issue comment when possible.
 8. Set the optional status to `Done` only after verification. Do not commit or
    push unless the user explicitly requests that part.
+9. If this workflow is
+   explicitly authorized to commit and push, resolve the repository's actual
+   default branch after the push is verified and return the current checkout to
+   it with `git switch <resolved-default-branch>`
+10. Do not switch branches when
+   no push occurred, and do not force a switch or alter another worktree if the
+   default branch is already checked out elsewhere; report that condition
+   instead.
