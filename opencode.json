@@ -6,6 +6,7 @@
     ".opencode/instructions/coding-standards.md",
     ".opencode/instructions/coding-standards-csharp.md",
     ".opencode/instructions/github.md",
-    ".opencode/instructions/worktrees.md"
+    ".opencode/instructions/worktrees.md",
+    ".opencode/instructions/reporting.md"
   ]
 }

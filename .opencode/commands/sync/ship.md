@@ -5,6 +5,7 @@ subtask: true
 ---
 
 Run the full synchronization workflow for the active branch. Load
-`github-management` when review metadata is involved. Use a summary from the
-configured local support directory when available; otherwise write a concise PR
-body from the diff. Confirm the final branch and PR URL.
+`github-management` when review metadata is involved. Use the structured
+summary from the configured support root when available; otherwise write a
+concise PR body from the diff following `.opencode/instructions/reporting.md`.
+Confirm the final branch and PR URL.

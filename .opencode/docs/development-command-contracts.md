@@ -28,7 +28,8 @@ implement <issue-number>
 **Outputs:**
 - Changed files list
 - Verification results
-- Summary posted as Issue comment
+- Structured summary (`.opencode/instructions/reporting.md`) written to the
+  configured support root and posted as an Issue comment
 
 **Confirmation:**
 - Required for file modifications

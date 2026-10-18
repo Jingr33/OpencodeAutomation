@@ -10,13 +10,19 @@ The worktree system allows concurrent work on multiple tasks by creating isolate
 
 ```
 .worktrees/
-├── feature-1-github-issue-templates/
-├── feature-2-initialize-opencode-repo/
-├── feature-3-coding-standards/
+├── BLOBS_project/                      # repository checkout
+├── feature-1-github-issue-templates/   # task worktree (first level)
+├── feature-2-initialize-opencode-repo/ # task worktree (first level)
 └── ...
 ```
 
-Worktrees are stored in `.worktrees/` by default, or in a custom location specified by `OPENCODE_WORKTREE_ROOT`. Branch names are sanitized to flat directory names (e.g., `feature/1-github-issue-templates` becomes `feature-1-github-issue-templates`).
+Every checkout — repository clones and task worktrees alike — lives directly under the worktree root at the first level. The worktree root is `.worktrees/` by default, or a custom location specified by `OPENCODE_WORKTREE_ROOT`. Branch names are sanitized to flat directory names (e.g., `feature/1-github-issue-templates` becomes `feature-1-github-issue-templates`).
+
+Worktrees are never nested. A worktree is never created inside another worktree or inside a repository checkout, so `.worktrees/<repo>/.worktrees/<branch>` is forbidden and rejected by the helper. When the repository checkout itself lives under `.worktrees/`, new worktrees are first-level siblings of that checkout.
+
+## Permissions
+
+Created worktrees and repository clones are opened up to every local account. On Windows the helper grants `Everyone` full control recursively with inheritance (`icacls /grant *S-1-1-0:(OI)(CI)F /T`, using the language-independent SID); on POSIX systems it applies `chmod -R a+rwX`. When the worktree root itself is created, the same inheritable access is applied to the root. If granting fails, creation continues and prints a warning.
 
 ## Commands
 
@@ -29,12 +35,15 @@ python .opencode/scripts/worktree.py create <branch> [base] [--repo <path>] [--p
 **Arguments:**
 - `branch`: Name of the new branch
 - `base`: Base branch to create from (defaults to repository's default branch)
-- `--repo`: Repository path (defaults to current directory)
-- `--path`: Custom worktree location
+- `--repo`: Registered repository checkout to create the worktree from; never a task worktree
+- `--root`: Worktree root; defaults to `OPENCODE_WORKTREE_ROOT` or the framework `.worktrees/` directory when the repository checkout lives under it
+- `--path`: Custom worktree location; must stay at the first level under the worktree root
 
 **Behavior:**
 - If the branch already exists, attaches to the existing worktree
 - Creates a new branch from the base if the branch doesn't exist
+- Places the worktree directly under the worktree root as a first-level sibling of the repository checkout
+- Refuses destinations nested inside another worktree
 - Reports the worktree path and branch
 
 ### List Worktrees

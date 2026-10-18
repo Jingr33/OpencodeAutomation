@@ -8,15 +8,19 @@ Load the `repository` and `worktree` skills. Parse `$ARGUMENTS` as
 
 1. Reject a remote URL that embeds credentials; never store them in a remote
    URL.
-2. Clone and register the repository with
-   `python .opencode/scripts/repository.py add <url-or-owner/name> [--name <name>]`
+2. Clone and register the repository into the first-level workspace layout with
+   `python .opencode/scripts/repository.py add <url-or-owner/name> [--name <name>] --path .worktrees/<name>`
    and take the clone path from its JSON output. An already existing clone is
    reused instead of being cloned again.
 3. Create a fresh worktree of that clone with
    `python .opencode/scripts/worktree.py create <branch> --repo <clone-path>`.
-   Let the helper resolve the repository's actual default branch as the base
-   and place the worktree under `OPENCODE_WORKTREE_ROOT` or `.worktrees/`.
-   Default `<branch>` to `clone/<repo-name>`, where `<repo-name>` is the name
+   The worktree MUST land directly under the framework worktree root
+   (`OPENCODE_WORKTREE_ROOT` or `.worktrees/`) as
+   `<worktree-root>/<sanitized-branch>`, a first-level sibling of the clone.
+   Never nest it inside the clone or another worktree
+   (`.worktrees/<repo>/.worktrees/<branch>` is forbidden). Let the helper
+   resolve the repository's actual default branch as the base. Default
+   `<branch>` to `clone/<repo-name>`, where `<repo-name>` is the name
    registered in step 2. If a worktree for that branch already exists, reuse it
    instead of creating a duplicate branch.
 4. Report the clone path, worktree path, branch, and base, then stop. Do not

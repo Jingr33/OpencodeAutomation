@@ -53,15 +53,11 @@ def validate_summary(content: str) -> list[str]:
     """Validate summary.md template."""
     errors = []
     
-    # Check required sections
-    if "## Task" not in content:
-        errors.append("Missing required section: ## Task")
-    
-    if "## Changes" not in content:
-        errors.append("Missing required section: ## Changes")
-    
-    if "## Verification" not in content:
-        errors.append("Missing required section: ## Verification")
+    # Check required sections of the structured summary format
+    required_sections = ("## Status", "## Stages", "## Changes", "## Verification")
+    for section in required_sections:
+        if section not in content:
+            errors.append(f"Missing required section: {section}")
     
     return errors
 

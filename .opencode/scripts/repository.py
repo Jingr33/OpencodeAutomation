@@ -84,6 +84,25 @@ def repository_name(source: str) -> str:
     return value
 
 
+def grant_everyone_permissions(path: Path, recursive: bool = True) -> None:
+    """Grant full access to every local account on a created tree."""
+    if os.name == "nt":
+        command = ["icacls", str(path), "/grant", "*S-1-1-0:(OI)(CI)F", "/C"]
+        if recursive:
+            command.append("/T")
+    else:
+        command = ["chmod"]
+        if recursive:
+            command.append("-R")
+        command.extend(["a+rwX", str(path)])
+    result = subprocess.run(command, text=True, capture_output=True)
+    if result.returncode != 0:
+        print(
+            f"warning: could not grant everyone permissions on {path}: "
+            f"{result.stderr.strip()}"
+        )
+
+
 def add_repository(args: argparse.Namespace) -> None:
     """Add a repository to the registry."""
     name = args.name or repository_name(args.source)
@@ -114,6 +133,8 @@ def add_repository(args: argparse.Namespace) -> None:
             if target.exists():
                 shutil.rmtree(target)
             raise SystemExit(f"Failed to clone repository: {e}")
+    
+    grant_everyone_permissions(target)
     
     # Get repository info
     remote = run(["git", "remote", "get-url", "origin"], cwd=target)
