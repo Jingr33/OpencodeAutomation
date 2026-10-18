@@ -2,7 +2,19 @@
 
 - Worktrees are isolated checkouts of a target Git repository, not copies of the
   framework itself. Keep them under `OPENCODE_WORKTREE_ROOT` or the default
-  `.worktrees/` directory.
+  `.worktrees/` directory. Every checkout lives directly under that root at the
+  first level: `<worktree-root>/<repo-name>` for a repository checkout and
+  `<worktree-root>/<sanitized-branch>` for a task worktree.
+- Never nest worktrees. Do not create a worktree inside another worktree or
+  inside a repository checkout; paths like
+  `.worktrees/<repo>/.worktrees/<branch>` are forbidden and rejected by the
+  worktree helper. When the repository checkout itself lives under
+  `.worktrees/`, new worktrees are first-level siblings of that checkout, not a
+  child of its own `.worktrees/` directory.
+- Create a worktree only from the registered repository checkout (the path
+  recorded in `.opencode/state/repositories.json`), never from a task worktree
+  of the same repository. Verify the worktree path returned by the helper is a
+  direct child of the worktree root before using it.
 - Each active task for an external or managed target gets its own branch and
   worktree. Do not edit two task branches from the same checkout.
 - Before creating a new worktree, check whether an existing clean worktree

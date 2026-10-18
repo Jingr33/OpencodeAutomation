@@ -45,7 +45,7 @@ based on the actual command files in `.opencode/commands/sync/` and
 **Behavior:**
 - Runs the full synchronization workflow for the active branch
 - Loads `github-management` when review metadata is involved
-- Uses a summary from the configured local support directory when available
+- Uses the structured summary from the configured support root when available
 - Writes a concise PR body from the diff when no summary exists
 - Confirms the final branch and PR URL
 

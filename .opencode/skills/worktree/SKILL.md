@@ -15,20 +15,31 @@ The worktree system manages concurrent Git worktrees for parallel development. W
 
 To create a new worktree:
 
-1. Run the worktree creation command
-2. Specify the branch name
-3. Optionally specify the base branch
-4. The system will create the worktree at the appropriate location
+1. Resolve the registered repository checkout with
+   `python .opencode/scripts/repository.py list` (or read
+   `.opencode/state/repositories.json`). Pass its exact path as `--repo`; it is
+   the repository's main clone even when it lives under `.worktrees/`.
+2. Run the worktree creation command with the branch name and optional base.
+3. The worktree MUST be created directly under the worktree root at the first
+   level: `<worktree-root>/<sanitized-branch>`, a sibling of the repository
+   checkout. Never pass a task worktree as `--repo` and never nest a worktree
+   inside another worktree or a repository checkout.
+4. Verify the printed worktree path is a direct child of `OPENCODE_WORKTREE_ROOT`
+   or `.worktrees/` before reporting it. Nested paths such as
+   `.worktrees/<repo>/.worktrees/<branch>` are forbidden and are rejected by the
+   helper.
 
 **Command:**
 ```bash
-python .opencode/scripts/worktree.py create <branch> [base]
+python .opencode/scripts/worktree.py create <branch> --repo <registered-checkout> [base]
 ```
 
 **Options:**
-- `--repo <path>`: Repository path
-- `--root <path>`: Custom worktree root
-- `--path <path>`: Custom worktree location
+- `--repo <path>`: Registered repository checkout, never a task worktree
+- `--root <path>`: Worktree root; defaults to `OPENCODE_WORKTREE_ROOT` or the
+  framework `.worktrees/` directory
+- `--path <path>`: Explicit destination; it must stay at the first level under
+  the worktree root and never inside another worktree
 
 ## Step 3 - List Worktrees
 
@@ -95,6 +106,12 @@ python .opencode/scripts/workspace.py add <worktree-path> --name <slug>
 ## Important Notes
 
 - Worktrees are isolated checkouts, not copies
+- Created worktrees are accessible to every local account: the helper grants
+  `Everyone` full control recursively on Windows and `a+rwX` on POSIX systems
+- All checkouts are first-level children of the worktree root; never nest one
+  worktree inside another worktree or inside a repository checkout
+- Create worktrees only from the registered repository checkout, never from a
+  task worktree
 - Each task gets its own branch and worktree
 - Verify branch and working tree are clean before reuse
 - Cleanup is explicit by default

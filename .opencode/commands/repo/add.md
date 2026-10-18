@@ -18,3 +18,5 @@ location must still be `.worktrees/<name>` unless stated otherwise.
 
 Verify the clone, remote URL, and default branch. Do not add the clone to this
 framework repository's Git history. Report the absolute path and how to target it.
+Task worktrees of this repository are created as first-level siblings directly
+under `.worktrees/`, never inside this checkout.

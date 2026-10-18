@@ -37,9 +37,67 @@ def is_agentic_repository(repo: Path) -> bool:
     return agentic_common_dir is not None and agentic_common_dir == target_common_dir
 
 
+def framework_worktree_root() -> Path:
+    return Path(__file__).resolve().parents[2] / ".worktrees"
+
+
+def is_inside(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
 def worktree_root(repo: Path, args: argparse.Namespace) -> Path:
     configured = args.root or os.environ.get("OPENCODE_WORKTREE_ROOT")
-    return Path(configured).expanduser().resolve() if configured else repo / ".worktrees"
+    if configured:
+        return Path(configured).expanduser().resolve()
+    root = framework_worktree_root()
+    if is_inside(repo.resolve(), root):
+        return root
+    return repo / ".worktrees"
+
+
+def reject_nested_target(repo: Path, target: Path) -> None:
+    """Refuse destinations nested inside an existing worktree.
+
+    Repository checkouts that live under the framework worktree root must keep
+    their task worktrees as first-level siblings, never nested inside the
+    checkout itself (e.g. no `.worktrees/<repo>/.worktrees/<branch>`).
+    """
+    repo = repo.resolve()
+    under_framework = is_inside(repo, framework_worktree_root())
+    root = framework_worktree_root() if under_framework else repo / ".worktrees"
+    for item in worktrees(repo):
+        parent = Path(str(item["path"])).resolve()
+        if target == parent or not is_inside(target, parent):
+            continue
+        if parent == repo and not under_framework:
+            continue
+        raise SystemExit(
+            f"refusing to create a nested worktree at {target} inside {parent}; "
+            f"place worktrees directly under {root}"
+        )
+
+
+def grant_everyone_permissions(path: Path, recursive: bool = True) -> None:
+    """Grant full access to every local account on a created tree."""
+    if os.name == "nt":
+        command = ["icacls", str(path), "/grant", "*S-1-1-0:(OI)(CI)F", "/C"]
+        if recursive:
+            command.append("/T")
+    else:
+        command = ["chmod"]
+        if recursive:
+            command.append("-R")
+        command.extend(["a+rwX", str(path)])
+    result = subprocess.run(command, text=True, capture_output=True)
+    if result.returncode != 0:
+        print(
+            f"warning: could not grant everyone permissions on {path}: "
+            f"{result.stderr.strip()}"
+        )
 
 
 def branch_path(root: Path, branch: str) -> Path:
@@ -230,6 +288,8 @@ def create(args: argparse.Namespace) -> None:
         return
     
     target = Path(args.path).expanduser().resolve() if args.path else branch_path(worktree_root(repo, args), branch)
+    reject_nested_target(repo, target)
+    root_created = not target.parent.exists()
     target.parent.mkdir(parents=True, exist_ok=True)
     
     # Check for path collisions
@@ -252,6 +312,9 @@ def create(args: argparse.Namespace) -> None:
         command.extend([str(target), branch])
     
     run(command, repo)
+    grant_everyone_permissions(target)
+    if root_created:
+        grant_everyone_permissions(target.parent, recursive=False)
     print(json.dumps({"path": str(target), "branch": branch, "base": base}, indent=2))
 
 
