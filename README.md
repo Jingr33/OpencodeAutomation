@@ -11,6 +11,9 @@ from one workspace.
   repository, or project number.
 - Repository registration and cloning through `repo.*` commands.
 - Isolated concurrent branches through `worktree.*` commands.
+- Deterministic Python startup through `/dev.startup.python`, including uv,
+  requirements-based virtual environments, preparation, readiness, logs, and
+  process shutdown.
 - Automatic worktree cleanup based on closed pull requests, with explicit
   confirmation before destructive operations.
 
@@ -18,8 +21,10 @@ from one workspace.
 
 1. Open this repository in OpenCode.
 2. Add a target repository with `/repo.add <url>` or work directly in this repo.
-3. Create an isolated branch with `/worktree.create <branch> [base-branch]`.
-4. Use `/dev.implement <issue-number>` for implementation and `/issue.*` for
+3. Clone a remote repository into a fresh worktree with `/repo.clone <url>` when
+   you only need the checkout and no task yet.
+4. Create an isolated branch with `/worktree.create <branch> [base-branch]`.
+5. Use `/dev.implement <issue-number>` for implementation and `/issue.*` for
    GitHub Issue management.
 
 The agentic repository is always changed in its current checkout and never in

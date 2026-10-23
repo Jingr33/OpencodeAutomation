@@ -78,9 +78,38 @@ def validate_profile(profile: dict[str, Any]) -> list[str]:
     
     # Validate packageManager
     if "packageManager" in profile:
-        valid_managers = ["npm", "yarn", "pnpm", "bun", "pip", "poetry", "uv", "dotnet", "cargo", "go"]
+        valid_managers = [
+            "npm", "yarn", "pnpm", "bun", "pip", "poetry", "pipenv", "uv",
+            "dotnet", "cargo", "go"
+        ]
         if profile["packageManager"] not in valid_managers:
             errors.append(f"Invalid packageManager: {profile['packageManager']}")
+
+    # Validate Python-specific runtime configuration.
+    if "python" in profile:
+        python = profile["python"]
+        if not isinstance(python, dict):
+            errors.append("Field 'python' must be a dictionary")
+        else:
+            if "manager" in python and python["manager"] not in ["pip", "uv", "poetry", "pipenv"]:
+                errors.append(f"Invalid Python manager: {python['manager']}")
+            for field in ["environment", "executable", "requirements"]:
+                if field in python and not isinstance(python[field], str):
+                    errors.append(f"Field 'python.{field}' must be a string")
+            if "run" in python:
+                if not isinstance(python["run"], list) or not python["run"]:
+                    errors.append("Field 'python.run' must be a non-empty list")
+                elif not all(isinstance(item, str) for item in python["run"]):
+                    errors.append("Field 'python.run' must contain only strings")
+
+    for field in ["run", "pythonEnvironment"]:
+        if field in profile:
+            if field == "run" and (not isinstance(profile[field], list) or not profile[field]):
+                errors.append("Field 'run' must be a non-empty list")
+            elif field == "run" and not all(isinstance(item, str) for item in profile[field]):
+                errors.append("Field 'run' must contain only strings")
+            elif field == "pythonEnvironment" and not isinstance(profile[field], str):
+                errors.append("Field 'pythonEnvironment' must be a string")
     
     # Validate environment
     if "environment" in profile:

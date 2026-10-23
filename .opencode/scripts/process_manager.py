@@ -9,6 +9,9 @@ import subprocess
 import sys
 import tempfile
 import time
+import socket
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -65,7 +68,11 @@ def create_process_record(
         "id": process_id,
         "command": command,
         "cwd": str(cwd),
-        "env": {k: v for k, v in (env or {}).items() if "SECRET" not in k and "PASSWORD" not in k},
+        "env": {
+            k: value
+            for k, value in ((key, (env or {}).get(key)) for key in ("PATH", "VIRTUAL_ENV", "PYTHONPATH", "UV_PROJECT_ENVIRONMENT"))
+            if value is not None
+        },
         "status": "starting",
         "pid": None,
         "processGroup": None,
@@ -74,8 +81,51 @@ def create_process_record(
         "logs": {
             "stdout": None,
             "stderr": None
-        }
+        },
+        "readiness": None,
     }
+
+
+def check_readiness(readiness: dict[str, Any], pid: int) -> bool:
+    """Check one bounded process readiness condition."""
+    readiness_type = readiness.get("type")
+    if readiness_type == "process":
+        return is_process_alive(pid)
+    if readiness_type == "file":
+        path = readiness.get("path")
+        return isinstance(path, str) and Path(path).exists()
+    if readiness_type == "tcp":
+        host = readiness.get("host", "127.0.0.1")
+        port = readiness.get("port")
+        if not isinstance(port, int):
+            return False
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return True
+        except OSError:
+            return False
+    if readiness_type == "http":
+        url = readiness.get("url")
+        if not isinstance(url, str):
+            return False
+        try:
+            with urllib.request.urlopen(url, timeout=2) as response:
+                return 200 <= response.status < 500
+        except (OSError, urllib.error.URLError):
+            return False
+    return False
+
+
+def wait_for_readiness(pid: int, readiness: dict[str, Any], timeout: int) -> bool:
+    """Wait until a process readiness condition succeeds or the process exits."""
+    deadline = time.monotonic() + max(timeout, 1)
+    while time.monotonic() < deadline:
+        if not is_process_alive(pid):
+            return False
+        if check_readiness(readiness, pid):
+            return True
+        time.sleep(0.25)
+    return False
 
 
 def start_process(
@@ -84,7 +134,8 @@ def start_process(
     cwd: Path,
     env: dict[str, str] | None = None,
     port: int | None = None,
-    timeout: int = 30
+    timeout: int = 30,
+    readiness: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Start a process and track it."""
     processes = load_processes()
@@ -118,23 +169,31 @@ def start_process(
     stderr_log = log_dir / f"{process_id}_stderr.log"
     
     # Create process record
-    record = create_process_record(process_id, command, cwd, env)
+    full_env = os.environ.copy()
+    if env:
+        full_env.update(env)
+    record = create_process_record(process_id, command, cwd, full_env)
+    record["readiness"] = readiness
     record["logs"]["stdout"] = str(stdout_log)
     record["logs"]["stderr"] = str(stderr_log)
     
     try:
         # Start process
-        stdout_file = open(stdout_log, "w")
-        stderr_file = open(stderr_log, "w")
-        
-        process = subprocess.Popen(
-            command,
-            cwd=cwd,
-            env=env,
-            stdout=stdout_file,
-            stderr=stderr_file,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0
-        )
+        stdout_file = open(stdout_log, "w", encoding="utf-8")
+        stderr_file = open(stderr_log, "w", encoding="utf-8")
+        try:
+            process = subprocess.Popen(
+                command,
+                cwd=cwd,
+                env=full_env,
+                stdout=stdout_file,
+                stderr=stderr_file,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0,
+                start_new_session=platform.system() != "Windows",
+            )
+        finally:
+            stdout_file.close()
+            stderr_file.close()
         
         record["pid"] = process.pid
         record["processGroup"] = process.pid if platform.system() != "Windows" else None
@@ -143,6 +202,19 @@ def start_process(
         
         processes[process_id] = record
         save_processes(processes)
+
+        if readiness and not wait_for_readiness(process.pid, readiness, timeout):
+            stop_process(process_id, force=True)
+            record["status"] = "failed"
+            record["error"] = f"Readiness check failed after {timeout} seconds"
+            processes = load_processes()
+            processes[process_id] = record
+            save_processes(processes)
+            return {
+                "success": False,
+                "error": record["error"],
+                "process": record,
+            }
         
         return {
             "success": True,
@@ -216,8 +288,8 @@ def stop_process(process_id: str, force: bool = False) -> dict[str, Any]:
     
     try:
         if platform.system() == "Windows":
-            # On Windows, kill the process
-            subprocess.run(["taskkill", "/PID", str(pid), "/F" if force else ""], check=True)
+            # taskkill with /T also terminates child processes such as reloaders.
+            subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], check=True)
         else:
             # On POSIX, kill the process group
             if force:

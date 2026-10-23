@@ -117,6 +117,16 @@ Startup commands in the agentic repository must only route to named technology-s
 - Process launching
 - Readiness checking
 
+### Python Startup
+
+`/dev.startup.python` routes to `toolkit-startup-python`. It accepts `plan`,
+`prepare`, `run`, `status`, `stop`, and `check` actions plus an explicit
+`--project-root`. The toolkit must select the manager from
+`opencode.project.json`, `uv.lock`, `poetry.lock`, `Pipfile*`, or
+`requirements*.txt`, in that order, and must execute Python commands through
+the selected manager or the target worktree's virtual environment. Shell
+activation is not part of the contract.
+
 ### Available Startup Commands
 
 ```

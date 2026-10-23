@@ -281,6 +281,134 @@ def closed_prs(branch: str, repo: Path) -> list[dict[str, str]]:
     return json.loads(result.stdout)
 
 
+def merged_prs(branch: str, repo: Path) -> list[dict[str, str]]:
+    """Return merged pull requests for a branch targeting the default branch."""
+    base = default_base(repo)
+    command = [
+        "gh",
+        "pr",
+        "list",
+        "--state",
+        "merged",
+        "--base",
+        base,
+        "--head",
+        branch,
+        "--json",
+        "number,url,headRefName,headRefOid,baseRefName",
+        "--limit",
+        "20",
+    ]
+    result = subprocess.run(command, cwd=repo, text=True, capture_output=True)
+    if result.returncode != 0:
+        return []
+    try:
+        prs = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return []
+    return [pr for pr in prs if pr.get("baseRefName") == base]
+
+
+def local_branches(repo: Path) -> list[str]:
+    """List local branches without including remote-tracking branches."""
+    output = run(
+        ["git", "for-each-ref", "refs/heads", "--format=%(refname:short)"],
+        repo,
+        check=False,
+    )
+    return [branch for branch in output.splitlines() if branch]
+
+
+def branch_upstream(repo: Path, branch: str) -> str | None:
+    upstream = run(
+        ["git", "rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}"],
+        repo,
+        check=False,
+    )
+    return upstream or None
+
+
+def comparison_ref(repo: Path, branch: str, prs: list[dict[str, str]]) -> str | None:
+    """Find the remote copy (or the last PR head) to compare with a branch."""
+    upstream = branch_upstream(repo, branch)
+    if upstream and run(["git", "rev-parse", "--verify", upstream], repo, check=False):
+        return upstream
+
+    remote_branch = f"origin/{branch}"
+    remote_commit = run(["git", "rev-parse", "--verify", remote_branch], repo, check=False)
+    if remote_commit:
+        return remote_branch
+
+    for pr in prs:
+        head_oid = pr.get("headRefOid")
+        if head_oid:
+            return head_oid
+    return None
+
+
+def is_ancestor(repo: Path, ancestor: str, descendant: str) -> bool:
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=repo,
+        text=True,
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def obsolete_local_branches(repo: Path, released_branches: set[str] | None = None) -> list[dict[str, object]]:
+    """Find merged, inactive local branches no newer than their remote copy.
+
+    Branches attached to a worktree are normally excluded. ``released_branches``
+    contains branches whose worktrees are safe cleanup candidates and will have
+    been released before branch deletion is applied.
+    """
+    released = released_branches or set()
+    current = run(["git", "branch", "--show-current"], repo, check=False)
+    attached = {
+        str(item["branch"])
+        for item in worktrees(repo)
+        if item.get("branch") and item.get("branch") != "(detached)"
+    }
+    attached -= released
+    base = default_base(repo)
+    candidates: list[dict[str, object]] = []
+
+    for branch in local_branches(repo):
+        if branch in {current, base} or branch in attached:
+            continue
+
+        prs = merged_prs(branch, repo)
+        if not prs:
+            continue
+        remote = comparison_ref(repo, branch, prs)
+        if not remote or not is_ancestor(repo, branch, remote):
+            continue
+
+        candidates.append({
+            "branch": branch,
+            "merged_prs": prs,
+            "comparison_ref": remote,
+        })
+
+    return candidates
+
+
+def delete_local_branch(repo: Path, branch: str) -> bool:
+    """Delete a previously verified obsolete local branch."""
+    result = subprocess.run(
+        ["git", "branch", "-D", branch],
+        cwd=repo,
+        text=True,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        print(f"failed to remove local branch {branch}: {result.stderr.strip()}")
+        return False
+    print(f"removed local branch: {branch}")
+    return True
+
+
 def cleanup(args: argparse.Namespace) -> None:
     repo = repo_path(args)
     candidates: list[dict[str, object]] = []
@@ -303,8 +431,21 @@ def cleanup(args: argparse.Namespace) -> None:
             "closed_prs": prs,
             "safety": safety
         })
-    
-    print(json.dumps(candidates, indent=2))
+
+    # Local branches are cleaned only as part of closed-PR cleanup. A branch
+    # attached to a worktree that is safe to remove is released for this
+    # operation; all other attached branches remain protected.
+    released_branches = {
+        str(candidate["branch"])
+        for candidate in candidates
+        if candidate.get("safety", {}).get("safe", False)
+        and (not candidate.get("dirty", False) or args.force)
+    }
+    branch_candidates = (
+        obsolete_local_branches(repo, released_branches) if args.closed_prs else []
+    )
+
+    print(json.dumps({"worktrees": candidates, "branches": branch_candidates}, indent=2))
     
     if not args.apply:
         return
@@ -321,6 +462,13 @@ def cleanup(args: argparse.Namespace) -> None:
         
         remove_args = argparse.Namespace(repo=str(repo), target=str(candidate["path"]), force=args.force)
         remove(remove_args)
+
+    if args.closed_prs:
+        # Re-evaluate after worktree removal so branches formerly attached to a
+        # successfully removed worktree can be deleted as well.
+        branch_candidates = obsolete_local_branches(repo)
+        for candidate in branch_candidates:
+            delete_local_branch(repo, str(candidate["branch"]))
 
 
 def parser() -> argparse.ArgumentParser:

@@ -1,164 +1,118 @@
-# Python Toolkit Startup Skill
+---
+name: toolkit-startup-python
+description: Use when starting, preparing, testing, or stopping a Python application in a target worktree with uv, requirements.txt, Poetry, Pipenv, or a virtual environment.
+---
 
-## Overview
+# Python Toolkit Startup
 
-This skill provides deterministic startup and lifecycle management for Python projects.
+This skill owns Python runtime selection for a target repository. It must be
+used instead of running the global `python`, `pip`, `pytest`, or application
+entrypoint directly.
 
-## Prerequisites
+## Resolution Rules
 
-- Python 3.8+ installed
-- Package manager (pip, poetry, uv, or pipenv)
+Resolve the target worktree first. Use `opencode.project.json` when present. If
+it does not specify a manager, detect the first applicable manifest in this
+order:
 
-## Project Detection
+1. `uv.lock` -> `uv`
+2. `poetry.lock` -> Poetry
+3. `Pipfile.lock` or `Pipfile` -> Pipenv
+4. `requirements.txt` or `requirements-*.txt` -> local virtual environment and pip
+5. `pyproject.toml` -> local virtual environment and pip
 
-### Automatic Detection
-The skill automatically detects Python projects by looking for:
-- `pyproject.toml` with Python project configuration
-- `requirements.txt` with Python dependencies
-- `uv.lock`, `poetry.lock`, or `Pipfile.lock` for package managers
-- Python files (`.py`) in the project
+The environment is local to the target worktree. Use `.venv` when available or
+when no environment exists; respect an existing `venv` and explicit
+`python.environment`/`pythonEnvironment` configuration. Never activate an
+environment in the shell and never use a virtual environment from another
+worktree.
 
-### Explicit Configuration
-Create `opencode.project.json` in the project root:
+## Entrypoints
+
+Use this priority:
+
+1. A selected profile service command.
+2. `run` or `python.run` in `opencode.project.json`.
+3. One declared `[project.scripts]`, `[project.gui-scripts]`, or
+   `[tool.poetry.scripts]` entry in `pyproject.toml`.
+4. An explicitly selected `--entrypoint`.
+
+If there are multiple entrypoints, require `--entrypoint` or `--service`. Do
+not infer a Flask, Django, FastAPI, Uvicorn, or custom command from filenames
+or dependencies.
+
+## Tool Commands
+
+Use the resolver from the agentic OpenCode repository. Prefer the absolute
+`OPENCODE_AUTOMATION_ROOT` environment variable when the current directory is
+the target worktree. The command body should pass the target path explicitly:
+
+```text
+python <automation-root>/.opencode/scripts/python_runtime.py plan --project-root <target>
+python <automation-root>/.opencode/scripts/python_runtime.py prepare --project-root <target>
+python <automation-root>/.opencode/scripts/python_runtime.py run --project-root <target>
+```
+
+For a profile service or ambiguous entrypoint, add `--service <id>` or
+`--entrypoint <name>`. The resolver returns the exact command, manager,
+environment, evidence, preparation commands, and process id.
+
+## Preparation
+
+Preparation is deterministic:
+
+- `uv`: `uv sync --locked` when `uv.lock` exists, otherwise `uv sync`.
+- Poetry: `poetry install`.
+- Pipenv: `pipenv sync` when `Pipfile.lock` exists, otherwise `pipenv install`.
+- pip: create the worktree-local environment, then install
+  `requirements.txt` (or the explicitly configured `python.requirements`
+  file); for a package-only `pyproject.toml`, install it with `pip install -e .`.
+  Multiple unconfigured `requirements-*.txt` files are an ambiguity and must
+  be selected explicitly.
+
+Do not silently install into the global interpreter. If the selected package
+manager is unavailable, stop and report the missing executable.
+
+## Execution
+
+The resolver wraps commands as follows:
+
+- uv: `uv run ...`
+- Poetry: `poetry run ...`
+- Pipenv: `pipenv run ...`
+- pip/venv: the environment's `python` executable or its `Scripts`/`bin`
+  directory on `PATH`.
+
+Use `run` for long-running applications. It records the process, logs, working
+directory, environment summary, and readiness result. Use `status` and `stop`
+with the same target and service selection. HTTP, TCP, file, and process
+readiness checks are supported only when declared in the profile.
+
+## Profile Example
 
 ```json
 {
   "version": 1,
   "projectType": "python",
   "root": ".",
-  "packageManager": "poetry",
+  "python": {
+    "manager": "uv",
+    "run": ["python", "-m", "blobs"]
+  },
   "services": [
     {
       "id": "api",
-      "cwd": ".",
-      "command": ["poetry", "run", "python", "-m", "uvicorn", "main:app", "--reload"],
+      "command": ["python", "-m", "uvicorn", "blobs.api:app"],
       "readiness": {
         "type": "http",
-        "url": "http://127.0.0.1:8000",
-        "timeoutSeconds": 30
+        "url": "http://127.0.0.1:8000/health",
+        "timeoutSeconds": 60
       }
     }
-  ],
-  "checks": {
-    "build": ["poetry", "build"],
-    "test": ["poetry", "run", "pytest"],
-    "lint": ["poetry", "run", "flake8"]
-  }
+  ]
 }
 ```
 
-## Package Manager Detection
-
-The skill detects package managers in this order:
-1. `uv.lock` → uv
-2. `poetry.lock` → poetry
-3. `Pipfile.lock` → pipenv
-4. `requirements.txt` → pip
-5. `pyproject.toml` → pip or poetry (based on build system)
-
-## Framework Detection
-
-The skill detects frameworks from explicit evidence only:
-- **FastAPI**: `fastapi` in dependencies, `app = FastAPI()` in code
-- **Flask**: `flask` in dependencies, `app = Flask(__name__)` in code
-- **Django**: `django` in dependencies, `manage.py` exists
-- **Custom**: No framework detected, use declared scripts
-
-## Command Selection
-
-The skill selects commands in this order:
-1. Explicit profile command
-2. Declared project scripts (e.g., `poetry run start`)
-3. Framework-specific commands (only with explicit evidence)
-4. Refuse if no usable command exists
-
-## Commands
-
-### Plan
-Preview what will be done without executing:
-
-```bash
-# Preview startup plan
-poetry run python -m uvicorn main:app --reload --dry-run
-```
-
-### Run
-Start the Python application:
-
-```bash
-# Using poetry
-poetry run python -m uvicorn main:app --reload
-
-# Using uv
-uv run python -m uvicorn main:app --reload
-
-# Using pipenv
-pipenv run python -m uvicorn main:app --reload
-
-# Using pip (with venv)
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-python -m uvicorn main:app --reload
-```
-
-### Status
-Check if the application is running:
-
-```bash
-# Check if Python process is running
-tasklist /FI "IMAGENAME eq python.exe" 2>NUL | find /I "python.exe" > NUL
-if %ERRORLEVEL% == 0 (
-    echo Python process is running
-) else (
-    echo Python process is not running
-)
-
-# Check HTTP endpoint
-curl -s http://127.0.0.1:8000 > /dev/null
-if %ERRORLEVEL% == 0 (
-    echo Server is responding
-) else (
-    echo Server is not responding
-)
-```
-
-### Stop
-Stop the application:
-
-```bash
-# Stop Python process
-taskkill /IM python.exe /F
-
-# Or use package manager script
-poetry run stop
-```
-
-## Best Practices
-
-1. **Use explicit configuration**: Always create `opencode.project.json` for production
-2. **Prefer declared scripts**: Use project scripts over framework-specific commands
-3. **Don't guess frameworks**: Only detect frameworks with explicit evidence
-4. **Require selection**: When multiple entrypoints exist, require user selection
-5. **Test frequently**: Run the application often to catch issues early
-
-## Troubleshooting
-
-### Port already in use
-- Check if another process is using the port
-- Kill the conflicting process
-- Configure a different port in `opencode.project.json`
-
-### Command not found
-- Ensure package manager is installed
-- Check if dependencies are installed
-- Verify virtual environment is activated
-
-### Application not responding
-- Check if the application started successfully
-- Verify the correct port is configured
-- Check for errors in the console
-- Ensure database or other services are running
-
-### Multiple entrypoints detected
-- Specify the entrypoint in `opencode.project.json`
-- Use explicit command configuration
-- Do not guess between frameworks
+The profile command is a payload. The resolver supplies the package-manager
+wrapper, so do not write both `uv run` and `python.run` unless the command is
+intentionally a fully managed command that the resolver should preserve.

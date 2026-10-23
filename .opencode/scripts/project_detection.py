@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from python_runtime import PythonRuntimeError, detect_python_project
+
 
 def detect_package_manager(project_root: Path) -> dict[str, Any]:
     """Detect package manager from lockfiles."""
@@ -227,7 +229,7 @@ def detect_project(project_root: Path) -> dict[str, Any]:
             }
         except (json.JSONDecodeError, KeyError) as e:
             evidence.append(f"Error parsing opencode.project.json: {e}")
-    
+
     # 2. Check for toolkit.startup.md
     startup_md_path = project_root / "toolkit.startup.md"
     if startup_md_path.exists():
@@ -249,6 +251,28 @@ def detect_project(project_root: Path) -> dict[str, Any]:
                 # Parse startup instructions from markdown
         except Exception:
             pass
+
+    python_markers = _python_project_markers(project_root)
+    if python_markers:
+        try:
+            python = detect_python_project(project_root)
+            evidence.extend(python["evidence"])
+            profile = {
+                "version": 1,
+                "projectType": "python",
+                "root": ".",
+                "packageManager": python["packageManager"],
+                "pythonEnvironment": python["environment"],
+                "services": [],
+                "checks": {},
+            }
+            return {
+                "source": "technology_detection",
+                "profile": profile,
+                "evidence": evidence,
+            }
+        except PythonRuntimeError as error:
+            evidence.append(str(error))
     
     # 4. Technology-specific detection
     package_manager = detect_package_manager(project_root)
@@ -273,6 +297,22 @@ def detect_project(project_root: Path) -> dict[str, Any]:
         "profile": profile,
         "evidence": evidence
     }
+
+
+def _python_project_markers(project_root: Path) -> list[str]:
+    """Return Python manifests without treating arbitrary .py files as a project."""
+    markers = []
+    for name in (
+        "pyproject.toml",
+        "uv.lock",
+        "poetry.lock",
+        "Pipfile",
+        "Pipfile.lock",
+        "requirements.txt",
+    ):
+        if (project_root / name).exists():
+            markers.append(name)
+    return markers
 
 
 def main():
