@@ -31,8 +31,13 @@ based on the actual command files in `.opencode/commands/sync/` and
 - Uses an Issue-aware commit message when possible
 - Pushes the current branch
 - Creates a PR only when one does not already exist
+- Resolves the repository's actual default branch and, after a verified push
+  and requested PR action, returns the current checkout to it
 - Never places credentials in a remote URL
 - Asks before force-pushing or committing unrelated changes
+- Leaves the current checkout unchanged when no push occurred or when the
+  default branch is already checked out by another worktree; it never forces a
+  switch or alters another worktree
 
 **Example:** `sync/push`
 
@@ -47,6 +52,8 @@ based on the actual command files in `.opencode/commands/sync/` and
 - Loads `github-management` when review metadata is involved
 - Uses a summary from the configured local support directory when available
 - Writes a concise PR body from the diff when no summary exists
+- Returns the current checkout to the repository's actual default branch only
+  after the push and PR creation are verified
 - Confirms the final branch and PR URL
 
 **Example:** `sync/ship`

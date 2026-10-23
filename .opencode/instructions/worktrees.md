@@ -20,3 +20,10 @@
   it with the worktree helper.
 - Never remove a worktree containing uncommitted changes without explicit user
   confirmation and the `--force` option.
+- A workflow that successfully pushes changes MUST resolve the repository's
+  actual default branch (prefer repository metadata, with `origin/HEAD` as a
+  fallback) and return its current checkout to that branch after verification
+  using `git switch`. It MUST NOT do so when no push occurred, force a switch,
+  or alter another worktree; if the default branch is already checked out
+  elsewhere, it must report the condition and leave the current checkout
+  unchanged.

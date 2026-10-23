@@ -37,7 +37,9 @@ association before acting
 **Forbidden Actions**: No webfetch; asks before force-pushing, rewriting
 history, or committing unrelated changes
 **Phases**: Commit, push, PR, ship
-**Completion Criteria**: Synchronization completed successfully
+**Completion Criteria**: Synchronization completed successfully; after a
+verified push, the current checkout returns to the repository's actual default
+branch when it is safe to switch
 **Output Schema**: Commit hash, PR URL, status
 
 ### Cluster (Remote Cluster Agent)
