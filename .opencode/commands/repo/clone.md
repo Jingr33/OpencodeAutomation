@@ -34,5 +34,9 @@ Load the `repository` and `worktree` skills. Parse `$ARGUMENTS` as
    Default `<branch>` to `clone/<repo-name>`, where `<repo-name>` is the name
    registered in step 2. If a worktree for that branch already exists, reuse it
    instead of creating a duplicate branch.
-5. Report the clone path, worktree path, branch, and base, then stop. Do not
+5. Add the worktree to the VS Code multi-root workspace with
+   `python .opencode/scripts/workspace.py add <worktree-path> --name <slug>`,
+   where `<slug>` is the sanitized worktree directory name. An already added
+   worktree is reported as unchanged.
+6. Report the clone path, worktree path, branch, and base, then stop. Do not
    fetch Issues, implement anything, commit, or push.
