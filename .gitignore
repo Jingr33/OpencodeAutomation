@@ -1,5 +1,6 @@
 
 # Repositories and worktrees managed by the OpenCode framework.
+source/
 repositories/
 .worktrees/
 .opencode/state/
