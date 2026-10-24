@@ -1,6 +1,6 @@
 {
   "example": {
-    "path": "../repositories/example",
+    "path": "../source/example_slot0",
     "remote": "https://github.com/owner/example.git",
     "branch": "main"
   }
